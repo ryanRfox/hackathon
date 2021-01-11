@@ -1,8 +1,8 @@
 package com.algorand.javatest.indexer;
 
-import com.algorand.algosdk.v2.client.common.Client;
 import com.algorand.algosdk.v2.client.common.IndexerClient;
 import com.algorand.algosdk.v2.client.common.Response;
+import com.algorand.algosdk.v2.client.model.Transaction;
 import com.algorand.algosdk.v2.client.model.TransactionsResponse;
 
 import org.json.JSONObject;

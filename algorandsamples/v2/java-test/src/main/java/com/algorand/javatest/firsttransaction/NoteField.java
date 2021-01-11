@@ -1,7 +1,6 @@
 package com.algorand.javatest.firsttransaction;
 
 import com.algorand.algosdk.account.Account;
-import com.algorand.algosdk.crypto.Address;
 import com.algorand.algosdk.transaction.SignedTransaction;
 import com.algorand.algosdk.transaction.Transaction;
 import com.algorand.algosdk.util.Encoder;
@@ -10,7 +9,6 @@ import com.algorand.algosdk.v2.client.common.Response;
 import com.algorand.algosdk.v2.client.model.NodeStatusResponse;
 import com.algorand.algosdk.v2.client.model.PendingTransactionResponse;
 import com.algorand.algosdk.v2.client.model.PostTransactionsResponse;
-import com.algorand.algosdk.v2.client.model.TransactionParametersResponse;
 import org.json.JSONObject;
 
 public class NoteField {
@@ -40,7 +38,7 @@ public class NoteField {
             throw new Exception(resp.message());
         }
         NodeStatusResponse nodeStatusResponse = resp.body();
-        Long startRound = nodeStatusResponse.lastRound;
+        Long startRound = nodeStatusResponse.lastRound+1;
         Long currentRound = startRound;
         while (currentRound < (startRound + timeout)) { 
                 // Check the pending transactions                 
@@ -58,11 +56,12 @@ public class NoteField {
                         }
                     }
                 }
-                currentRound++;            
+        
                 Response<NodeStatusResponse> resp3 = myclient.WaitForBlock(currentRound).execute();
                 if (!resp3.isSuccessful()) {
                     throw new Exception(resp3.message());
-                }       
+                }   
+                currentRound++;                  
         }
         throw new Exception("Transaction not confirmed after " + timeout + " rounds!");
     }
