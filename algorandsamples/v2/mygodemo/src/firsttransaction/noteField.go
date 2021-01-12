@@ -39,7 +39,7 @@ func waitForConfirmation(txID string, client *algod.Client, timeout uint64) (mod
 	currentRound := startRound
 
 	for currentRound < (startRound + timeout) {
-		status, err = client.StatusAfterBlock(currentRound).Do(context.Background())
+
 		*pt, _, err = client.PendingTransactionInformation(txID).Do(context.Background())
 		if err != nil {
 			fmt.Printf("error getting pending transaction: %s\n", err)
@@ -56,6 +56,7 @@ func waitForConfirmation(txID string, client *algod.Client, timeout uint64) (mod
 			return *pt, msg
 		}
 		fmt.Printf("waiting for confirmation\n")
+		status, err = client.StatusAfterBlock(currentRound).Do(context.Background())
 		currentRound++
 	}
 	msg := errors.New("Tx not found in round range")

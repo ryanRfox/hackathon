@@ -1,6 +1,9 @@
 const algosdk = require('algosdk');
 
-// Function used to wait for a tx confirmation
+  /**
+     * utility function to wait on a transaction to be confirmed
+     * the timeout parameter indicates how many rounds do you wish to check pending transactions for
+     */
 const waitForConfirmation = async function (algodclient, txId, timeout) {
     // Wait until the transaction is confirmed or rejected, or until 'timeout'
     // number of rounds have passed.
@@ -19,7 +22,6 @@ const waitForConfirmation = async function (algodclient, txId, timeout) {
     let currentround = startround;
 
     while (currentround < (startround + timeout)) {
-        await algodClient.statusAfterBlock(currentround).do();
         let pendingInfo = await algodclient.pendingTransactionInformation(txId).do();      
         if (pendingInfo != undefined) {
             if (pendingInfo["confirmed-round"] !== null && pendingInfo["confirmed-round"] > 0) {
@@ -33,9 +35,10 @@ const waitForConfirmation = async function (algodclient, txId, timeout) {
                 }
             }
         } 
+        await algodClient.statusAfterBlock(currentround).do();
         currentround++;
     }
-    throw new Error("Pending tx not found in timeout rounds, timeout value = " + timeout);
+    throw new Error("Transaction not confirmed after " + timeout + " rounds!");
 };
 
 // const token = "<your-api-token>";
@@ -89,15 +92,14 @@ let algodClient = new algosdk.Algodv2(token, server, port);
 
     // Wait for confirmation
     let confirmedTxn = await waitForConfirmation(algodClient, txId, 4);
-    //Got the completed Transaction
+    //Get the completed Transaction
     console.log("Transaction " + txId + " confirmed in round " + confirmedTxn["confirmed-round"]);
     let mytxinfo = JSON.stringify(confirmedTxn.txn.txn, undefined, 2);
     console.log("Transaction information: %o", mytxinfo);
-    console.log("Note: %s", confirmedTxn.txn.txn.note);
     var string = new TextDecoder().decode(confirmedTxn.txn.txn.note);
-    console.log(Uint8Array, string);
+    console.log("Note field: ", string);
     const obj = JSON.parse(string);
-    console.log(obj.firstName);
+    console.log("Note first name: %s", obj.firstName);
 })().catch(e => {
     console.log(e);
 });

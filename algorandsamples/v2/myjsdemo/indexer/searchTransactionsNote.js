@@ -17,7 +17,8 @@ const indexer_port = 8981;
 let indexerClient = new algosdk.Indexer(indexer_token, indexer_server, indexer_port);
 
 (async () => {  
-    let names = "Russell Anthony";
+    //let names = "Russell Anthony";
+    let names = '{"firstName":"John"';
     const enc = new TextEncoder();
     const note = enc.encode(names);
     const s = Buffer.from(note).toString("base64");

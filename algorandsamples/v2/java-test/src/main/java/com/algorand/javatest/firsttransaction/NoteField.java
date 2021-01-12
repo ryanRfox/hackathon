@@ -133,7 +133,7 @@ public class NoteField {
             throw new Exception(resp.message());
         }
         com.algorand.algosdk.v2.client.model.Account accountInfo = resp.body();
-        System.out.println("Account Balance: " + accountInfo.amount + "microAlgos");
+        System.out.println("Account Balance: " + accountInfo.amount + " microAlgos");
     }
 
     public static void main(String args[]) throws Exception {
