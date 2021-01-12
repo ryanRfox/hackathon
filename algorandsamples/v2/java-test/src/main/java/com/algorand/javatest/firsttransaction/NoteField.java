@@ -11,6 +11,7 @@ import com.algorand.algosdk.v2.client.model.PendingTransactionResponse;
 import com.algorand.algosdk.v2.client.model.PostTransactionsResponse;
 import org.json.JSONObject;
 
+
 public class NoteField {
     public AlgodClient client = null;
 
@@ -27,6 +28,7 @@ public class NoteField {
 
     /**
      * utility function to wait on a transaction to be confirmed
+     * the timeout parameter indicates how many rounds do you wish to check pending transactions for
      */
     public PendingTransactionResponse waitForConfirmation(AlgodClient myclient, String txID, Integer timeout)
             throws Exception {
@@ -122,7 +124,9 @@ public class NoteField {
     /**
      * Print  account balance.
      */
+
     private void printBalance(Account myAccount) throws Exception {
+    
         Response<com.algorand.algosdk.v2.client.model.Account> resp = client.AccountInformation(myAccount.getAddress())
                 .execute();
         if (!resp.isSuccessful()) {
