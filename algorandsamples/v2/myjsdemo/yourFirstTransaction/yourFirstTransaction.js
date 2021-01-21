@@ -1,20 +1,46 @@
 const algosdk = require('algosdk');
 
-// function used to wait for a tx confirmation
-const waitForConfirmation = async function (algodclient, txId) {
-    let status = (await algodclient.status().do());
-    let lastRound = status["last-round"];
-    while (true) {
-        const pendingInfo = await algodclient.pendingTransactionInformation(txId).do();
-        if (pendingInfo["confirmed-round"] !== null && pendingInfo["confirmed-round"] > 0) {
-            //Got the completed Transaction
-            console.log("Transaction " + txId + " confirmed in round " + pendingInfo["confirmed-round"]);
-            break;
-        }
-        lastRound++;
-        await algodclient.statusAfterBlock(lastRound).do();
+/**
+ * utility function to wait on a transaction to be confirmed
+ * the timeout parameter indicates how many rounds do you wish to check pending transactions for
+ */
+const waitForConfirmation = async function (algodclient, txId, timeout) {
+    // Wait until the transaction is confirmed or rejected, or until 'timeout'
+    // number of rounds have passed.
+    //     Args:
+    // txId(str): the transaction to wait for
+    // timeout(int): maximum number of rounds to wait
+    // Returns:
+    // pending transaction information, or throws an error if the transaction
+    // is not confirmed or rejected in the next timeout rounds
+    if (algodclient == null || txId == null || timeout < 0) {
+        throw "Bad arguments.";
     }
+    let status = (await algodclient.status().do());
+    if (status == undefined) throw new Error("Unable to get node status");
+    let startround = status["last-round"] + 1;   
+    let currentround = startround;
+
+    while (currentround < (startround + timeout)) {
+        let pendingInfo = await algodclient.pendingTransactionInformation(txId).do();      
+        if (pendingInfo != undefined) {
+            if (pendingInfo["confirmed-round"] !== null && pendingInfo["confirmed-round"] > 0) {
+                //Got the completed Transaction
+                return pendingInfo;
+            }
+            else {
+                if (pendingInfo["pool-error"] != null && pendingInfo["pool-error"].length > 0) {
+                    // If there was a pool error, then the transaction has been rejected!
+                    throw new Error("Transaction Rejected" + " pool error" + pendingInfo["pool-error"]);
+                }
+            }
+        } 
+        await algodClient.statusAfterBlock(currentround).do();
+        currentround++;
+    }
+    throw new Error("Transaction not confirmed after " + timeout + " rounds!");
 };
+    
 
 async function yourFirstTransaction() {
 
@@ -48,7 +74,8 @@ async function yourFirstTransaction() {
 
         // receiver defined as TestNet faucet address 
         const receiver = "GD64YIY3TWGDMCNPP553DZPPR6LDUSFQOIJVFDPPXWEG3FVOJCCDBBHU5A";
-        let note = algosdk.encodeObj("Hello World");
+        const enc = new TextEncoder();
+        const note = enc.encode("Hello World");
 
         let txn = algosdk.makePaymentTxnWithSuggestedParams(myAccount.addr, receiver, 1000000, undefined, note, params);
 
@@ -61,15 +88,14 @@ async function yourFirstTransaction() {
         await algodClient.sendRawTransaction(signedTxn).do();
 
         // Wait for confirmation
-        await waitForConfirmation(algodClient, txId);
-
-        // Read the transaction from the blockchain
-        let confirmedTxn = await algodClient.pendingTransactionInformation(txId).do();
-     //   console.log("Transaction information: %o", confirmedTxn.txn.txn);
+        let confirmedTxn = await waitForConfirmation(algodClient, txId, 4);
+        //Get the completed Transaction
+        console.log("Transaction " + txId + " confirmed in round " + confirmedTxn["confirmed-round"]);
         let mytxinfo = JSON.stringify(confirmedTxn.txn.txn, undefined, 2);
         console.log("Transaction information: %o", mytxinfo);
+        var string = new TextDecoder().decode(confirmedTxn.txn.txn.note);
+        console.log("Note field: ", string);
 
-        console.log("Decoded note: %s", algosdk.decodeObj(confirmedTxn.txn.txn.note));
     }
     catch (err) {
         console.log("err", err);

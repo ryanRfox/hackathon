@@ -35,7 +35,7 @@ const waitForConfirmation = async function (algodclient, txId, timeout) {
                 }
             }
         } 
-        await algodClient.statusAfterBlock(currentround).do();
+        await algodclient.statusAfterBlock(currentround).do();
         currentround++;
     }
     throw new Error("Transaction not confirmed after " + timeout + " rounds!");
