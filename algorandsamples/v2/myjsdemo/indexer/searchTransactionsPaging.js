@@ -4,14 +4,14 @@
 // npm list algosdk
 
 const algosdk = require('algosdk');
-const indexer_token = "";
-const indexer_server = "http://localhost";
-const indexer_port = 8980;
-// const indexer_server = "https://testnet-algorand.api.purestake.io/idx2/";
-// const indexer_port = "";
-// const indexer_token = {
-//     'X-API-key': 'B3SU4KcVKi94Jap2VXkK83xx38bsv95K5UZm2lab',
-// }
+// const indexer_token = "";
+// const indexer_server = "http://localhost";
+// const indexer_port = 8981;
+const indexer_server = "https://testnet-algorand.api.purestake.io/idx2/";
+const indexer_port = "";
+const indexer_token = {
+    'X-API-key': 'B3SU4KcVKi94Jap2VXkK83xx38bsv95K5UZm2lab',
+}
 
 // Instantiate the indexer client wrapper
 let indexerClient = new algosdk.Indexer(indexer_token, indexer_server, indexer_port);
@@ -22,13 +22,15 @@ let numtx = 1;
 // for the limit(max limit is 1000  per request)    
 (async () => {
     let min_amount = 500000000000;
-    let limit = 2;
+    let limit = 4;
+    let max_round = 10000
     while (numtx > 0) {
         // execute code as long as condition is true
         let next_page = nexttoken;
         let response = await indexerClient.searchForTransactions()
             .limit(limit)
             .currencyGreaterThan(min_amount)
+            .maxRound(max_round)
             .nextToken(next_page).do();
         let transactions = response['transactions'];
         numtx = transactions.length;

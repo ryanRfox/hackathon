@@ -46,7 +46,7 @@ let algodclient = new algosdk.Algodv2(token, server, port);
     // It should not be used in production
     // arg_0
     // btoi
-    // int 123
+    // int 12345
     // ==
     // see more info here: https://developer.algorand.org/docs/features/asc1/sdks/#accessing-teal-program-from-sdks
     var fs = require('fs'),
@@ -66,7 +66,8 @@ let algodclient = new algosdk.Algodv2(token, server, port);
     // let args = ["<my string>"];
     // let lsig = algosdk.makeLogicSig(program, args);
     // Integer parameter
-    let args = [[123]];
+
+    let args = getUint8Int(12345);
     let lsig = algosdk.makeLogicSig(program, args);
 
     // sign the logic signature with an account sk
@@ -93,3 +94,9 @@ let algodclient = new algosdk.Algodv2(token, server, port);
     console.log(e.message);
     console.log(e);
 });
+function getUint8Int(number) {
+    const buffer = Buffer.alloc(8);
+    const bigIntValue = BigInt(number);
+    buffer.writeBigUInt64BE(bigIntValue);
+    return  [Uint8Array.from(buffer)];
+}

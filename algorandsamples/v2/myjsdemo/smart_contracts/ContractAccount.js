@@ -4,9 +4,13 @@ const algosdk = require('algosdk');
 // const server = "<algod-address>";
 // const port = <algod-port>;
 
-const token = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
-const server = "http://localhost";
-const port = 4001;
+// const token = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+// const server = "http://localhost";
+// const port = 4001;
+const token = "ef920e2e7e002953f4b29a8af720efe8e4ecc75ff102b165e0472834b25832c1";
+const server = "http://hackathon.algodev.network";
+const port = 9100;
+
 // Import the filesystem module 
 const fs = require('fs'); 
 
@@ -43,7 +47,7 @@ let algodclient = new algosdk.Algodv2(token, server, port);
     // It should not be used in production
     // arg_0
     // btoi
-    // int 123
+    // int 12345
     // ==
     // see more info here: https://developer.algorand.org/docs/features/asc1/sdks/#accessing-teal-program-from-sdks
     var fs = require('fs'),
@@ -56,6 +60,7 @@ let algodclient = new algosdk.Algodv2(token, server, port);
     console.log("Result = " + results.result);
     // let program = new Uint8Array(Buffer.from("base64-encoded-program" < PLACEHOLDER >, "base64"));
     let program = new Uint8Array(Buffer.from(results.result, "base64"));
+    //let program = new Uint8Array(Buffer.from("AiABuWAtFyIS", "base64"));
     // Use this if no args
     // let lsig = algosdk.makeLogicSig(program);
 
@@ -63,9 +68,11 @@ let algodclient = new algosdk.Algodv2(token, server, port);
     // let args = ["<my string>"];
     // let lsig = algosdk.makeLogicSig(program, args);
     // Integer parameter
-    let args = [[123]];
+
+    let args = getUint8Int(12345);
     let lsig = algosdk.makeLogicSig(program, args);
     console.log("lsig : " + lsig.address());   
+    
 
     // create a transaction
     let sender = lsig.address();
@@ -86,6 +93,13 @@ let algodclient = new algosdk.Algodv2(token, server, port);
     await waitForConfirmation(algodclient, tx.txId);
 
 })().catch(e => {
-    console.log(e.message);
+    console.log(e.response.body.message);
     console.log(e);
 });
+
+function getUint8Int(number) {
+    const buffer = Buffer.alloc(8);
+    const bigIntValue = BigInt(number);
+    buffer.writeBigUInt64BE(bigIntValue);
+    return  [Uint8Array.from(buffer)];
+}

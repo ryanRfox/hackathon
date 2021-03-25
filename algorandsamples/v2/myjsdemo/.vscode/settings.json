@@ -1,4 +1,8 @@
 {
-    "debug.foreground": "#FFFFFF",
-    "debug.background": "#000000"
-}
+    "settings": {
+        "debug.console.fontSize": 16,
+        "debug.console.fontFamily": "consolas",
+        "debug.foreground": "#FFFFFF",
+        "debug.background": "#000000",
+        "debug.console.fontColor": "#FFFFFF"
+    }

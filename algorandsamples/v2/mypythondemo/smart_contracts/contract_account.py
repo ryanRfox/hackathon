@@ -3,22 +3,38 @@ from algosdk.v2client import algod
 from algosdk.future.transaction import PaymentTxn, LogicSig
 import os
 import base64
+import json
 
-def wait_for_confirmation(client, txid):
+# utility for waiting on a transaction confirmation
+def wait_for_confirmation(client, transaction_id, timeout):
     """
-    Utility function to wait until the transaction is
-    confirmed before proceeding.
+    Wait until the transaction is confirmed or rejected, or until 'timeout'
+    number of rounds have passed.
+    Args:
+        transaction_id (str): the transaction to wait for
+        timeout (int): maximum number of rounds to wait    
+    Returns:
+        dict: pending transaction information, or throws an error if the transaction
+            is not confirmed or rejected in the next timeout rounds
     """
-    last_round = client.status().get('last-round')
-    txinfo = client.pending_transaction_info(txid)
-    while not (txinfo.get('confirmed-round') and txinfo.get('confirmed-round') > 0):
-        print("Waiting for confirmation")
-        last_round += 1
-        client.status_after_block(last_round)
-        txinfo = client.pending_transaction_info(txid)
-    print("Transaction {} confirmed in round {}.".format(
-        txid, txinfo.get('confirmed-round')))
-    return txinfo
+    start_round = client.status()["last-round"] + 1
+    current_round = start_round
+
+    while current_round < start_round + timeout:
+        try:
+            pending_txn = client.pending_transaction_info(transaction_id)
+        except Exception:
+            return 
+        if pending_txn.get("confirmed-round", 0) > 0:
+            return pending_txn
+        elif pending_txn["pool-error"]:  
+            raise Exception(
+                'pool error: {}'.format(pending_txn["pool-error"]))
+        client.status_after_block(current_round)                   
+        current_round += 1
+    raise Exception(
+        'pending tx not found in timeout rounds, timeout value = : {}'.format(timeout))
+
 
 # Read a file
 def load_resource(res):
@@ -28,7 +44,7 @@ def load_resource(res):
         data = fin.read()
     return data
 
-try:
+def contract_account_example():
 
     # Create an algod client
     algod_token = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" 
@@ -111,8 +127,14 @@ try:
 
     # Send raw LogicSigTransaction to network
     txid = algod_client.send_transaction(lstx)
-    print("Transaction ID: " + txid)    
-    wait_for_confirmation(algod_client, txid) 
+    print("Transaction ID: " + txid) 
+    # wait for confirmation	
+    try:
+        confirmed_txn = wait_for_confirmation(algod_client, txid, 4)  
+    except Exception as err:
+        print(err)
 
-except Exception as e:
-    print(e)
+    print("Transaction information: {}".format(
+    json.dumps(confirmed_txn, indent=4)))
+ 
+contract_account_example()

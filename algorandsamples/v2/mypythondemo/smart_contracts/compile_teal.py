@@ -15,8 +15,11 @@ def load_resource(res):
 try:
 
     # create an algod client
-    algod_token = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" 
-    algod_address = "http://localhost:4001"
+    # algod_token = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" 
+    # algod_address = "http://localhost:4001"
+    
+    algod_address = "http://hackathon.algodev.network:9100"
+    algod_token = "ef920e2e7e002953f4b29a8af720efe8e4ecc75ff102b165e0472834b25832c1"
 
     # algod_token = "<algod-token>"
     # algod_address = "<algod-address>"

@@ -2,8 +2,8 @@ import json
 from algosdk.v2client import indexer
 
 # instantiate indexer client
-myindexer = indexer.IndexerClient(indexer_token="", indexer_address="http://localhost:59998")
-response = myindexer.`applications(20)
+myindexer = indexer.IndexerClient(indexer_token="", indexer_address="http://localhost:8981")
+response = myindexer.applications(12174882)
 
 print("Response Info: " + json.dumps(response, indent=2, sort_keys=True))
 

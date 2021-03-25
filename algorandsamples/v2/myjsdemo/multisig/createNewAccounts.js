@@ -47,7 +47,9 @@ console.log("");
 console.log("var account1_mnemonic = \"" + account1_mnemonic + "\"");
 console.log("var account2_mnemonic = \"" + account2_mnemonic + "\"");
 console.log("var account3_mnemonic = \"" + account3_mnemonic + "\"");
-
+console.log("var account1 address = \"" + account1 + "\"");
+console.log("var account2 address = \"" + account2 + "\"");
+console.log("var account3 address = \"" + account3 + "\"");
 // sandbox
 const token = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 const server = "http://localhost";

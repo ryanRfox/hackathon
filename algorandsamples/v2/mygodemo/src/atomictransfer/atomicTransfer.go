@@ -3,10 +3,14 @@ package main
 import (
 	"context"
 	"crypto/ed25519"
-	"encoding/json"
+	json "encoding/json"
+	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/algorand/go-algorand-sdk/client/v2/algod"
+	"github.com/algorand/go-algorand-sdk/client/v2/common/models"
+
 	"github.com/algorand/go-algorand-sdk/crypto"
 	"github.com/algorand/go-algorand-sdk/mnemonic"
 	"github.com/algorand/go-algorand-sdk/transaction"
@@ -45,27 +49,47 @@ func prettyPrint(data interface{}) {
 	fmt.Printf("%s \n", p)
 }
 // Function that waits for a given txId to be confirmed by the network
-func waitForConfirmation(txID string, client *algod.Client) {
+func waitForConfirmation(txID string, client *algod.Client, timeout uint64) (models.PendingTransactionInfoResponse, error) {
+	pt := new(models.PendingTransactionInfoResponse)
+	if client == nil || txID == "" || timeout < 0 {
+		fmt.Printf("Bad arguments for waitForConfirmation")
+		var msg = errors.New("Bad arguments for waitForConfirmation")
+		return *pt, msg
+
+	}
+
 	status, err := client.Status().Do(context.Background())
 	if err != nil {
 		fmt.Printf("error getting algod status: %s\n", err)
-		return
+		var msg = errors.New(strings.Join([]string{"error getting algod status: "}, err.Error()))
+		return *pt, msg
 	}
-	lastRound := status.LastRound
-	for {
-		pt, _, err := client.PendingTransactionInformation(txID).Do(context.Background())
+	startRound := status.LastRound + 1
+	currentRound := startRound
+
+	for currentRound < (startRound + timeout) {
+
+		*pt, _, err = client.PendingTransactionInformation(txID).Do(context.Background())
 		if err != nil {
 			fmt.Printf("error getting pending transaction: %s\n", err)
-			return
+			var msg = errors.New(strings.Join([]string{"error getting pending transaction: "}, err.Error()))
+			return *pt, msg
 		}
 		if pt.ConfirmedRound > 0 {
 			fmt.Printf("Transaction "+txID+" confirmed in round %d\n", pt.ConfirmedRound)
-			break
+			return *pt, nil
 		}
-		fmt.Printf("...waiting for confirmation\n")
-		lastRound++
-		status, err = client.StatusAfterBlock(lastRound).Do(context.Background())
+		if pt.PoolError != "" {
+			fmt.Printf("There was a pool error, then the transaction has been rejected!")
+			var msg = errors.New("There was a pool error, then the transaction has been rejected")
+			return *pt, msg
+		}
+		fmt.Printf("waiting for confirmation\n")
+		status, err = client.StatusAfterBlock(currentRound).Do(context.Background())
+		currentRound++
 	}
+	msg := errors.New("Tx not found in round range")
+	return *pt, msg
 }
 
 // utility function to get address string
@@ -215,7 +239,18 @@ func main() {
 		fmt.Printf("failed to send transaction: %s\n", err)
 		return
 	}
-	waitForConfirmation(pendingTxID, algodClient)
+    fmt.Printf("Submitted transaction %s\n", pendingTxID)
+	// Wait for confirmation
+	confirmedTxn, err := waitForConfirmation(pendingTxID, algodClient, 4)
+	if err != nil {
+		fmt.Printf("Error waiting for confirmation on txID: %s\n", pendingTxID)
+		return
+	}
+	txnJSON, err := json.MarshalIndent(confirmedTxn.Transaction.Txn, "", "\t")
+	if err != nil {
+		fmt.Printf("Can not marshall txn data: %s\n", err)
+	}
+	fmt.Printf("Transaction information: %s\n", txnJSON)
 
 	// display account balances
 	fmt.Println("Final balances:")

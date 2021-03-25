@@ -37,12 +37,21 @@ def wait_for_confirmation(client, transaction_id, timeout):
         'pending tx not found in timeout rounds, timeout value = : {}'.format(timeout))
 
 def getting_started_example():
-	algod_address = "http://localhost:4001"
-	algod_token = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-	algod_client = algod.AlgodClient(algod_token, algod_address)
+	# algod_address = "http://localhost:4001"
+	# algod_token = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+	# algod_client = algod.AlgodClient(algod_token, algod_address)
+
+
+	algod_token = 'WpYvadV1w53mSODr6Xrq77tw0ODcgHAx9iJBn5tb'
+	algod_address = 'https://testnet-algorand.api.purestake.io/ps2'
+	purestake_token = {'X-Api-key': algod_token}
+	algod_client = algod.AlgodClient(algod_token, algod_address, headers=purestake_token)
+
 
 	passphrase = "price clap dilemma swim genius fame lucky crack torch hunt maid palace ladder unlock symptom rubber scale load acoustic drop oval cabbage review abstract embark"
 
+	 
+	
 	# generate a public/private key pair
 	private_key = mnemonic.to_private_key(passphrase)
 	my_address = mnemonic.to_public_key(passphrase)

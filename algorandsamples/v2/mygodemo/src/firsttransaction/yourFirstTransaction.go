@@ -63,79 +63,79 @@ func waitForConfirmation(txID string, client *algod.Client, timeout uint64) (mod
 	return *pt, msg
 }
 func main() {
-    algodClient, err := algod.MakeClient(algodAddress, algodToken)
-    if err != nil {
-        fmt.Printf("Issue with creating algod client: %s\n", err)
-        return
-    }
+	algodClient, err := algod.MakeClient(algodAddress, algodToken)
+	if err != nil {
+		fmt.Printf("Issue with creating algod client: %s\n", err)
+		return
+	}
 
-    passphrase := "price clap dilemma swim genius fame lucky crack torch hunt maid palace ladder unlock symptom rubber scale load acoustic drop oval cabbage review abstract embark"
+	passphrase := "price clap dilemma swim genius fame lucky crack torch hunt maid palace ladder unlock symptom rubber scale load acoustic drop oval cabbage review abstract embark"
 
-    privateKey, err := mnemonic.ToPrivateKey(passphrase)
-    if err != nil {
-        fmt.Printf("Issue with mnemonic conversion: %s\n", err)
-        return
-    }
+	privateKey, err := mnemonic.ToPrivateKey(passphrase)
+	if err != nil {
+		fmt.Printf("Issue with mnemonic conversion: %s\n", err)
+		return
+	}
 
-    var myAddress types.Address
-    publicKey := privateKey.Public()
-    cpk := publicKey.(ed25519.PublicKey)
-    copy(myAddress[:], cpk[:])
-    fmt.Printf("My address: %s\n", myAddress.String())
+	var myAddress types.Address
+	publicKey := privateKey.Public()
+	cpk := publicKey.(ed25519.PublicKey)
+	copy(myAddress[:], cpk[:])
+	fmt.Printf("My address: %s\n", myAddress.String())
 
-    // Check account balance
-    accountInfo, err := algodClient.AccountInformation(myAddress.String()).Do(context.Background())
-    if err != nil {
-        fmt.Printf("Error getting account info: %s\n", err)
-        return
-    }
-    fmt.Printf("Account balance: %d microAlgos\n", accountInfo.Amount)
+	// Check account balance
+	accountInfo, err := algodClient.AccountInformation(myAddress.String()).Do(context.Background())
+	if err != nil {
+		fmt.Printf("Error getting account info: %s\n", err)
+		return
+	}
+	fmt.Printf("Account balance: %d microAlgos\n", accountInfo.Amount)
 
-    // Construct the transaction
-    txParams, err := algodClient.SuggestedParams().Do(context.Background())
-    if err != nil {
-        fmt.Printf("Error getting suggested tx params: %s\n", err)
-        return
-    }
-    // comment out the next two (2) lines to use suggested fees
-    txParams.FlatFee = true
-    txParams.Fee = 1000
+	// Construct the transaction
+	txParams, err := algodClient.SuggestedParams().Do(context.Background())
+	if err != nil {
+		fmt.Printf("Error getting suggested tx params: %s\n", err)
+		return
+	}
+	// comment out the next two (2) lines to use suggested fees
+	txParams.FlatFee = true
+	txParams.Fee = 1000
 
-    fromAddr := myAddress.String()
-    toAddr := "GD64YIY3TWGDMCNPP553DZPPR6LDUSFQOIJVFDPPXWEG3FVOJCCDBBHU5A"
-    var amount uint64 = 1000000
-    var minFee uint64 = 1000
-    note := []byte("Hello World")
-    genID := txParams.GenesisID
-    genHash := txParams.GenesisHash
-    firstValidRound := uint64(txParams.FirstRoundValid)
-    lastValidRound := uint64(txParams.LastRoundValid)
+	fromAddr := myAddress.String()
+	toAddr := "GD64YIY3TWGDMCNPP553DZPPR6LDUSFQOIJVFDPPXWEG3FVOJCCDBBHU5A"
+	var amount uint64 = 1000000
+	var minFee uint64 = 1000
+	note := []byte("Hello World")
+	genID := txParams.GenesisID
+	genHash := txParams.GenesisHash
+	firstValidRound := uint64(txParams.FirstRoundValid)
+	lastValidRound := uint64(txParams.LastRoundValid)
 
-    txn, err := transaction.MakePaymentTxnWithFlatFee(fromAddr, toAddr, minFee, amount, firstValidRound, lastValidRound, note, "", genID, genHash)
-    if err != nil {
-        fmt.Printf("Error creating transaction: %s\n", err)
-        return
-    }
-    // Sign the transaction
-    txID, signedTxn, err := crypto.SignTransaction(privateKey, txn)
-    if err != nil {
-        fmt.Printf("Failed to sign transaction: %s\n", err)
-        return
-    }
-    fmt.Printf("Signed txid: %s\n", txID)
+	txn, err := transaction.MakePaymentTxnWithFlatFee(fromAddr, toAddr, minFee, amount, firstValidRound, lastValidRound, note, "", genID, genHash)
+	if err != nil {
+		fmt.Printf("Error creating transaction: %s\n", err)
+		return
+	}
+	// Sign the transaction
+	txID, signedTxn, err := crypto.SignTransaction(privateKey, txn)
+	if err != nil {
+		fmt.Printf("Failed to sign transaction: %s\n", err)
+		return
+	}
+	fmt.Printf("Signed txid: %s\n", txID)
 
-    // Submit the transaction
-    sendResponse, err := algodClient.SendRawTransaction(signedTxn).Do(context.Background())
-    if err != nil {
-        fmt.Printf("failed to send transaction: %s\n", err)
-        return
-    }
-    fmt.Printf("Submitted transaction %s\n", sendResponse)
+	// Submit the transaction
+	sendResponse, err := algodClient.SendRawTransaction(signedTxn).Do(context.Background())
+	if err != nil {
+		fmt.Printf("failed to send transaction: %s\n", err)
+		return
+	}
+	fmt.Printf("Submitted transaction %s\n", sendResponse)
 
 	// Wait for confirmation
 	confirmedTxn, err := waitForConfirmation(txID, algodClient, 4)
 	if err != nil {
-		fmt.Printf("Error wating for confirmation on txID: %s\n", txID)
+		fmt.Printf("Error waiting for confirmation on txID: %s\n", txID)
 		return
 	}
 	txnJSON, err := json.MarshalIndent(confirmedTxn.Transaction.Txn, "", "\t")
@@ -146,4 +146,3 @@ func main() {
 
 	fmt.Printf("Decoded note: %s\n", string(confirmedTxn.Transaction.Txn.Note))
 }
-

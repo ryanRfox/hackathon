@@ -22,7 +22,7 @@ const indexer_token = {
 let indexerClient = new algosdk.Indexer(indexer_token, indexer_server, indexer_port);
 
 (async () => {
-    let assetIndex = 12215366;
+    let assetIndex = 14039660;
     let accountInfo = await indexerClient.searchAccounts()
         .assetID(assetIndex).do();
     // let accountInfo = await indexerClient.searchAccounts().do();

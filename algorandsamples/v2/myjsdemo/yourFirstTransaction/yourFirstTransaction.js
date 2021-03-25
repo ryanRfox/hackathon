@@ -35,7 +35,7 @@ const waitForConfirmation = async function (algodclient, txId, timeout) {
                 }
             }
         } 
-        await algodClient.statusAfterBlock(currentround).do();
+        await algodclient.statusAfterBlock(currentround).do();
         currentround++;
     }
     throw new Error("Transaction not confirmed after " + timeout + " rounds!");
@@ -56,9 +56,16 @@ async function yourFirstTransaction() {
         // BetaNet Faucet: https://bank.betanet.algodev.network/
 
         // Connect your client
-        const algodToken = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
-        const algodServer = "http://localhost";
-        const algodPort = 4001;
+        // const algodToken = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+        // const algodServer = "http://localhost";
+        // const algodPort = 4001;
+
+        
+        const algodServer = "https://testnet-algorand.api.purestake.io/ps2";
+        const algodPort = '';
+        const algodToken = {
+            'X-API-Key': 'B3SU4KcVKi94Jap2VXkK83xx38bsv95K5UZm2lab'
+        }
 
         let algodClient = new algosdk.Algodv2(algodToken, algodServer, algodPort);
 
@@ -68,6 +75,8 @@ async function yourFirstTransaction() {
 
         // Construct the transaction
         let params = await algodClient.getTransactionParams().do();
+        // let paramsresp = await algodClient.getTransactionParams();
+        // let params = paramsresp.do();
         // comment out the next two lines to use suggested fee
         params.fee = 1000;
         params.flatFee = true;

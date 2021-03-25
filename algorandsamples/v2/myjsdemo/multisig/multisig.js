@@ -1,20 +1,44 @@
 const algosdk = require('algosdk');
 
-
-// function used to wait for a tx confirmation
-const waitForConfirmation = async function (algodclient, txId) {
-    let status = (await algodclient.status().do());
-    let lastRound = status["last-round"];
-    while (true) {
-        const pendingInfo = await algodclient.pendingTransactionInformation(txId).do();
-        if (pendingInfo["confirmed-round"] !== null && pendingInfo["confirmed-round"] > 0) {
-            //Got the completed Transaction
-            console.log("Transaction " + txId + " confirmed in round " + pendingInfo["confirmed-round"]);
-            break;
-        }
-        lastRound++;
-        await algodclient.statusAfterBlock(lastRound).do();
+/**
+ * utility function to wait on a transaction to be confirmed
+ * the timeout parameter indicates how many rounds do you wish to check pending transactions for
+ */
+const waitForConfirmation = async function (algodclient, txId, timeout) {
+    // Wait until the transaction is confirmed or rejected, or until 'timeout'
+    // number of rounds have passed.
+    //     Args:
+    // txId(str): the transaction to wait for
+    // timeout(int): maximum number of rounds to wait
+    // Returns:
+    // pending transaction information, or throws an error if the transaction
+    // is not confirmed or rejected in the next timeout rounds
+    if (algodclient == null || txId == null || timeout < 0) {
+        throw "Bad arguments.";
     }
+    let status = (await algodclient.status().do());
+    if (status == undefined) throw new Error("Unable to get node status");
+    let startround = status["last-round"] + 1;
+    let currentround = startround;
+
+    while (currentround < (startround + timeout)) {
+        let pendingInfo = await algodclient.pendingTransactionInformation(txId).do();
+        if (pendingInfo != undefined) {
+            if (pendingInfo["confirmed-round"] !== null && pendingInfo["confirmed-round"] > 0) {
+                //Got the completed Transaction
+                return pendingInfo;
+            }
+            else {
+                if (pendingInfo["pool-error"] != null && pendingInfo["pool-error"].length > 0) {
+                    // If there was a pool error, then the transaction has been rejected!
+                    throw new Error("Transaction Rejected" + " pool error" + pendingInfo["pool-error"]);
+                }
+            }
+        }
+        await algodclient.statusAfterBlock(currentround).do();
+        currentround++;
+    }
+    throw new Error("Transaction not confirmed after " + timeout + " rounds!");
 };
 // enter token, server, and port
 // const token = <algod-token>;
@@ -25,30 +49,29 @@ const token = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 const server = "http://localhost";
 const port = 4001;
 
-const keypress = async() => {
+const keypress = async () => {
     process.stdin.setRawMode(true)
     return new Promise(resolve => process.stdin.once('data', () => {
-                process.stdin.setRawMode(false)
+        process.stdin.setRawMode(false)
         resolve()
     }))
 }
 
-(async() => {
+(async () => {
     // recover accounts
     // paste in mnemonic phrases here for each account
 
-    // var account1_mnemonic = "PASTE phrase for account 1";
-    // var account2_mnemonic = "PASTE phrase for account 2";
-    // var account3_mnemonic = "PASTE phrase for account 3"
+    // let account1_mnemonic = "PASTE phrase for account 1";
+    // let account2_mnemonic = "PASTE phrase for account 2";
+    // let account3_mnemonic = "PASTE phrase for account 3"
 
-    var account1_mnemonic = "patrol target joy dial ethics flip usual fatigue bulb security prosper brand coast arch casino burger inch cricket scissors shoe evolve eternal calm absorb school";
-    var account2_mnemonic = "genius inside turtle lock alone blame parent civil depend dinosaur tag fiction fun skill chief use damp daughter expose pioneer today weasel box about silly";
-    var account3_mnemonic = "off canyon mystery cable pluck emotion manual legal journey grit lunch include friend social monkey approve lava steel school mango auto cactus huge ability basket"
+    let account1_mnemonic = "patrol target joy dial ethics flip usual fatigue bulb security prosper brand coast arch casino burger inch cricket scissors shoe evolve eternal calm absorb school";
+    let account2_mnemonic = "genius inside turtle lock alone blame parent civil depend dinosaur tag fiction fun skill chief use damp daughter expose pioneer today weasel box about silly";
+    let account3_mnemonic = "off canyon mystery cable pluck emotion manual legal journey grit lunch include friend social monkey approve lava steel school mango auto cactus huge ability basket"
 
-
-    var account1 = algosdk.mnemonicToSecretKey(account1_mnemonic);
-    var account2 = algosdk.mnemonicToSecretKey(account2_mnemonic);
-    var account3 = algosdk.mnemonicToSecretKey(account3_mnemonic);
+    let account1 = algosdk.mnemonicToSecretKey(account1_mnemonic);
+    let account2 = algosdk.mnemonicToSecretKey(account2_mnemonic);
+    let account3 = algosdk.mnemonicToSecretKey(account3_mnemonic);
     console.log(account1.addr);
     console.log(account2.addr);
     console.log(account3.addr);
@@ -64,7 +87,7 @@ const keypress = async() => {
         ],
     };
 
-    var multsigaddr = algosdk.multisigAddress(mparams);
+    let multsigaddr = algosdk.multisigAddress(mparams);
     console.log("Multisig Address: " + multsigaddr);
     //Pause execution to allow using the dispenser on testnet to put tokens in account
     console.log('Dispense funds to this account on TestNet https://bank.testnet.algorand.network/');
@@ -78,22 +101,13 @@ const keypress = async() => {
         params.fee = 1000;
         params.flatFee = true;
 
-        //create a transaction
-        // let txn = {
-        //     "from": multsigaddr,
-        //     "to": account3.addr,
-        //     "fee": params.fee,
-        //     "amount": 200000,
-        //     "firstRound": params.firstRound,
-        //     "lastRound": params.lastRound,
-        //     "genesisID": params.genesisID,
-        //     "genesisHash": params.genesisHash,
-        //     "note": new Uint8Array(0)
-        // };
         const receiver = account3.addr;
-        let note = algosdk.encodeObj("Hello World");
-        
-        let txn = algosdk.makePaymentTxnWithSuggestedParams(multsigaddr, receiver, 1000000, undefined, note, params);       
+        let names = '{"firstName":"John", "lastName":"Doe"}';
+        const enc = new TextEncoder();
+        const note = enc.encode(names);
+
+
+        let txn = algosdk.makePaymentTxnWithSuggestedParams(multsigaddr, receiver, 1000000, undefined, note, params);
         let txId = txn.txID().toString();
         // Sign with first signature
 
@@ -102,15 +116,20 @@ const keypress = async() => {
         let twosigs = algosdk.appendSignMultisigTransaction(rawSignedTxn, mparams, account2.sk).blob;
         //submit the transaction
         await algodclient.sendRawTransaction(twosigs).do();
-        // Wait for confirmation
-        await waitForConfirmation(algodclient, txId);
 
-        // Read the transaction from the blockchain
-        let confirmedTxn = await algodclient.pendingTransactionInformation(txId).do();
-        console.log("Transaction information: %o", confirmedTxn.txn.txn);      
-        console.log("Decoded note: %s", algosdk.decodeObj(confirmedTxn.txn.txn.note));
+        // Wait for confirmation
+        let confirmedTxn = await waitForConfirmation(algodclient, txId, 4);
+        //Get the completed Transaction
+        console.log("Transaction " + txId + " confirmed in round " + confirmedTxn["confirmed-round"]);
+        let mytxinfo = JSON.stringify(confirmedTxn.txn.txn, undefined, 2);
+        console.log("Transaction information: %o", mytxinfo);
+        let string = new TextDecoder().decode(confirmedTxn.txn.txn.note);
+        console.log("Note field: ", string);
+        const obj = JSON.parse(string);
+        console.log("Note first name: %s", obj.firstName);
+
 
     } catch (err) {
-                console.log(err.message);
+        console.log(err.message);
     }
 })().then(process.exit)

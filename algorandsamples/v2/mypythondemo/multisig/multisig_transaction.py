@@ -2,7 +2,7 @@ import json
 from algosdk.v2client import algod
 from algosdk import account, encoding, mnemonic
 from algosdk.future.transaction import Multisig, PaymentTxn, MultisigTransaction
-
+import base64
 
 # Change these values with mnemonics
 # mnemonic1 = "PASTE phrase for account 1"
@@ -25,21 +25,36 @@ account_2 = mnemonic.to_public_key(mnemonic2)
 private_key_3 = mnemonic.to_private_key(mnemonic3)
 account_3 = mnemonic.to_public_key(mnemonic3)
 
-def wait_for_confirmation(client, txid):
+# utility for waiting on a transaction confirmation
+def wait_for_confirmation(client, transaction_id, timeout):
     """
-    Utility function to wait until the transaction is
-    confirmed before proceeding.
+    Wait until the transaction is confirmed or rejected, or until 'timeout'
+    number of rounds have passed.
+    Args:
+        transaction_id (str): the transaction to wait for
+        timeout (int): maximum number of rounds to wait    
+    Returns:
+        dict: pending transaction information, or throws an error if the transaction
+            is not confirmed or rejected in the next timeout rounds
     """
-    last_round = client.status().get('last-round')
-    txinfo = client.pending_transaction_info(txid)
-    while not (txinfo.get('confirmed-round') and txinfo.get('confirmed-round') > 0):
-        print("Waiting for confirmation")
-        last_round += 1
-        client.status_after_block(last_round)
-        txinfo = client.pending_transaction_info(txid)
-    print("Transaction {} confirmed in round {}.".format(
-        txid, txinfo.get('confirmed-round')))
-    return txinfo
+    start_round = client.status()["last-round"] + 1
+    current_round = start_round
+
+    while current_round < start_round + timeout:
+        try:
+            pending_txn = client.pending_transaction_info(transaction_id)
+        except Exception:
+            return 
+        if pending_txn.get("confirmed-round", 0) > 0:
+            return pending_txn
+        elif pending_txn["pool-error"]:  
+            raise Exception(
+                'pool error: {}'.format(pending_txn["pool-error"]))
+        client.status_after_block(current_round)                   
+        current_round += 1
+    raise Exception(
+        'pending tx not found in timeout rounds, timeout value = : {}'.format(timeout))
+
 
 
 # create a multisig account
@@ -58,6 +73,9 @@ print("Please go to: https://bank.testnet.algorand.network/ to fund multisig acc
 # sandbox
 algod_address = "http://localhost:4001"
 algod_token = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+# local
+# algod_address = "http://localhost:8080"
+# algod_token = "8024065d94521d253181cff008c44fa4ae4bdf44f028834cd4b4769a26282de1"
 
 # Initialize an algod client
 algod_client = algod.AlgodClient(algod_token, algod_address)
@@ -86,8 +104,17 @@ mtx.sign(private_key_2)
 # print(encoding.msgpack_encode(mtx))
 
 # send the transaction
-transaction_id = algod_client.send_raw_transaction(
+txid = algod_client.send_raw_transaction(
     encoding.msgpack_encode(mtx))
-wait_for_confirmation(algod_client, transaction_id)
-print("\nTransaction was sent!")
-print("Transaction ID: " + transaction_id + "\n")
+    # wait for confirmation	
+try:
+    confirmed_txn = wait_for_confirmation(algod_client, txid, 4)  
+    print("Transaction information: {}".format(
+        json.dumps(confirmed_txn, indent=4)))
+    print("Decoded note: {}".format(base64.b64decode(
+        confirmed_txn["txn"]["txn"]["note"]).decode()))
+except Exception as err:
+    print(err)
+
+
+

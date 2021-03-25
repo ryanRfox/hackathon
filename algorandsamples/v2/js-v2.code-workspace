@@ -4,19 +4,28 @@
 			"path": "myjsdemo"
 		},
 	],
-	"settings": {},
+	"settings": {
+		"debug.console.fontSize": 16,
+		"debug.console.fontFamily": "Consolas",
+		"debug.console.foreground": "#FFFFFF",
+		"debug.console.background": "#000000",
+		"debug.toolBarLocation" : "floating",		
+		"debug.foreground": "#FFFFFF",
+		"debug.background": "#000000",
+		"debug.console.fontColor": "black"
+		
+	},
 	"launch": {
 		"configurations": [
-		
-		{
-			"type": "node",
-			"request": "launch",
-			"name": "Launch AccountInfo",
-			"program": "${workspaceFolder}/indexer/AccountInfo.js",
-			"skipFiles": [
-				"<node_internals>/**"
-			]
-		}
+			{
+				"type": "node",
+				"request": "launch",
+				"name": "Launch AccountInfo",
+				"program": "${workspaceFolder}/indexer/AccountInfo.js",
+				"skipFiles": [
+					"<node_internals>/**"
+				]
+			}
 		]
 	}
 }

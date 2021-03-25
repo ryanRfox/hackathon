@@ -6,6 +6,7 @@ import (
 	"github.com/algorand/go-algorand-sdk/crypto"
 	"github.com/algorand/go-algorand-sdk/mnemonic"
 	"github.com/algorand/go-algorand-sdk/types"
+	"github.com/algorand/go-algorand-sdk/client/v2/common/models"
 )
 
 // Accounts to be used through examples
