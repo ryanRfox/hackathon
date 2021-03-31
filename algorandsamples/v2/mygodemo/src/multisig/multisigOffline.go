@@ -26,15 +26,18 @@ import (
 const algodAddress = "http://localhost:4001"
 const algodToken = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 
+// const algodAddress = "http://hackathon.algodev.network:9100"
+// const algodToken = "ef920e2e7e002953f4b29a8af720efe8e4ecc75ff102b165e0472834b25832c1"
+
 // Accounts to be used through examples
 func loadAccounts() (map[int][]byte, map[int]string) {
 	// Shown for demonstration purposes. NEVER reveal secret mnemonics in practice.
 	// Change these values to use the accounts created previously.
-    var pks = map[int]string{
-        1: "Account Address 1 ",
-        2: "Account Address 2 ",
-        3: "Account Address 3 ",
-    }
+	// var pks = map[int]string{
+	//     1: "Account Address 1 ",
+	//     2: "Account Address 2 ",
+	//     3: "Account Address 3 ",
+	// }
 	// Paste in mnemonic phrases for all three accounts
 	// mnemonic1 := "PASTE phrase for account 1"
 	// mnemonic2 := "PASTE phrase for account 2"
@@ -45,7 +48,7 @@ func loadAccounts() (map[int][]byte, map[int]string) {
 	mnemonic3 := "mirror zone together remind rural impose balcony position minimum quick manage climb quit draft lion device pluck rug siege robust spirit fine luggage ability actual"
 
 	mnemonics := []string{mnemonic1, mnemonic2, mnemonic3}
-	// pks := map[int]string{1: "", 2: "", 3: ""}
+	pks := map[int]string{1: "", 2: "", 3: ""}
 	var sks = make(map[int][]byte)
 
 	for i, m := range mnemonics {
@@ -58,12 +61,12 @@ func loadAccounts() (map[int][]byte, map[int]string) {
 			fmt.Printf("Loaded Key %d: %s\n", i+1, pks[i+1])
 		}
 		// derive public address from Secret Key.
-		// pk := sk.Public()
-		// var a types.Address
-		// cpk := pk.(ed25519.PublicKey)
-		// copy(a[:], cpk[:])
-		// pks[i+1] = a.String()
-		// fmt.Printf("Loaded Key %d: %s\n", i+1, pks[i+1])
+		pk := sk.Public()
+		var a types.Address
+		cpk := pk.(ed25519.PublicKey)
+		copy(a[:], cpk[:])
+		pks[i+1] = a.String()
+		fmt.Printf("Loaded Key %d: %s\n", i+1, pks[i+1])
 	}
 	return sks, pks
 }
@@ -88,6 +91,8 @@ func waitForConfirmation(txID string, client *algod.Client, timeout uint64) (mod
 	currentRound := startRound
 
 	for currentRound < (startRound + timeout) {
+
+		fmt.Printf("Round checked: %d\n", currentRound)
 
 		*pt, _, err = client.PendingTransactionInformation(txID).Do(context.Background())
 		if err != nil {
@@ -148,12 +153,12 @@ func saveUnsignedMultisigTransaction() {
 		panic("invalid multisig parameters")
 	}
 	// Check account balance
-	accountInfo, err := algodClient.AccountInformation(addr1.String()).Do(context.Background())
-	if err != nil {
-		fmt.Printf("Error getting account info: %s\n", err)
-		return
-	}
-	fmt.Printf("Account balance: %d microAlgos\n", accountInfo.Amount)
+	// accountInfo, err := algodClient.AccountInformation(addr1.String()).Do(context.Background())
+	// if err != nil {
+	// 	fmt.Printf("Error getting account info: %s\n", err)
+	// 	return
+	// }
+	// fmt.Printf("Account balance: %d microAlgos\n", accountInfo.Amount)
 
 	// Construct the transaction
 	txParams, err := algodClient.SuggestedParams().Do(context.Background())
@@ -164,8 +169,8 @@ func saveUnsignedMultisigTransaction() {
 	// comment out the next two (2) lines to use suggested fees
 	txParams.FlatFee = true
 	txParams.Fee = 1000
-
-	fromAddr := addr1.String()
+	fromAddr, _ := ma.Address()
+	//fromAddr := addr1.String()
 	toAddr := addr2.String()
 	var amount uint64 = 1000000
 	var minFee uint64 = 1000
@@ -175,7 +180,7 @@ func saveUnsignedMultisigTransaction() {
 	firstValidRound := uint64(txParams.FirstRoundValid)
 	lastValidRound := uint64(txParams.LastRoundValid)
 
-	txn, err := transaction.MakePaymentTxnWithFlatFee(fromAddr, toAddr, minFee, amount, firstValidRound, lastValidRound, note, "", genID, genHash)
+	txn, err := transaction.MakePaymentTxnWithFlatFee(fromAddr.String(), toAddr, minFee, amount, firstValidRound, lastValidRound, note, "", genID, genHash)
 	if err != nil {
 		fmt.Printf("Error creating transaction: %s\n", err)
 		return
@@ -220,7 +225,6 @@ func readUnsignedMultisigTransaction() {
 	var unsignedTxRaw types.SignedTxn
 	var unsignedTxn types.Transaction
 
-	
 	msgpack.Decode(dat, &unsignedTxRaw)
 	unsignedTxn = unsignedTxRaw.Txn
 	sks, pks := loadAccounts()
@@ -252,11 +256,10 @@ func readUnsignedMultisigTransaction() {
 
 	fmt.Printf("Made 2-out-of-3 multisig transaction with TxID %s: %x\n", txid, twoOfThreeTxBytes)
 
-
 	txid, err = algodClient.SendRawTransaction(twoOfThreeTxBytes).Do(context.Background())
 
 	// Wait for confirmation
-	confirmedTxn, err := waitForConfirmation(txid, algodClient, 4)
+	confirmedTxn, err := waitForConfirmation(txid, algodClient, 5)
 	if err != nil {
 		fmt.Printf("Error waiting for confirmation on txID: %s\n", txid)
 		return
@@ -293,12 +296,12 @@ func saveSignedMultisigTransaction() {
 		panic("invalid multisig parameters")
 	}
 	// Check account balance
-	accountInfo, err := algodClient.AccountInformation(addr1.String()).Do(context.Background())
-	if err != nil {
-		fmt.Printf("Error getting account info: %s\n", err)
-		return
-	}
-	fmt.Printf("Account balance: %d microAlgos\n", accountInfo.Amount)
+	// accountInfo, err := algodClient.AccountInformation(addr1.String()).Do(context.Background())
+	// if err != nil {
+	// 	fmt.Printf("Error getting account info: %s\n", err)
+	// 	return
+	// }
+	// fmt.Printf("Account balance: %d microAlgos\n", accountInfo.Amount)
 
 	// Construct the transaction
 	txParams, err := algodClient.SuggestedParams().Do(context.Background())
@@ -309,8 +312,10 @@ func saveSignedMultisigTransaction() {
 	// comment out the next two (2) lines to use suggested fees
 	txParams.FlatFee = true
 	txParams.Fee = 1000
-
-	fromAddr := addr1.String()
+	fromAddr, _ := ma.Address()
+	// Print multisig account
+	fmt.Printf("Here is your multisig address : %s \n", fromAddr.String())
+	fmt.Println("Please go to: https://bank.testnet.algorand.network/ to fund your multisig account.")
 	toAddr := addr2.String()
 	var amount uint64 = 1000000
 	var minFee uint64 = 1000
@@ -320,13 +325,11 @@ func saveSignedMultisigTransaction() {
 	firstValidRound := uint64(txParams.FirstRoundValid)
 	lastValidRound := uint64(txParams.LastRoundValid)
 
-	txn, err := transaction.MakePaymentTxnWithFlatFee(fromAddr, toAddr, minFee, amount, firstValidRound, lastValidRound, note, "", genID, genHash)
+	txn, err := transaction.MakePaymentTxnWithFlatFee(fromAddr.String(), toAddr, minFee, amount, firstValidRound, lastValidRound, note, "", genID, genHash)
 	if err != nil {
 		fmt.Printf("Error creating transaction: %s\n", err)
 		return
 	}
-
-	
 
 	txid, txBytes, err := crypto.SignMultisigTransaction(sks[1], ma, txn)
 	if err != nil {
@@ -368,7 +371,7 @@ func readSignedMultisigTransaction() {
 	if err != nil {
 		fmt.Printf("Error reading signed transaction from file: %s\n", err)
 		return
-	}	
+	}
 
 	// Broadcast the transaction to the network
 	txid, err := algodClient.SendRawTransaction(dat).Do(context.Background())
@@ -389,10 +392,10 @@ func readSignedMultisigTransaction() {
 }
 func main() {
 
-	saveUnsignedMultisigTransaction()
-	readUnsignedMultisigTransaction()
+	// saveUnsignedMultisigTransaction()
+	// readUnsignedMultisigTransaction()
 
-	// saveSignedMultisigTransaction()
-	// readSignedMultisigTransaction()
+	saveSignedMultisigTransaction()
+	readSignedMultisigTransaction()
 
 }
