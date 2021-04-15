@@ -1,4 +1,4 @@
-package com.algorand.javatest.firsttransaction;
+package com.algorand.javatest.offline;
 
 import com.algorand.algosdk.account.Account;
 import com.algorand.algosdk.crypto.Address;
@@ -15,7 +15,7 @@ import org.json.JSONObject;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
-public class SaveTransactionOffline {
+public class Offline {
     public AlgodClient client = null;
 
     // utility function to connect to a node
@@ -111,7 +111,7 @@ public class SaveTransactionOffline {
                 .suggestedParams(params)
                 .build();
 
-            // Sign the transaction
+            // save as signed even though it has not been
             SignedTransaction stx = myAccount.signTransaction(tx);
             System.out.println("Signed transaction with txid: " + stx.transactionID);
             stx.tx = tx;  
@@ -133,7 +133,7 @@ public class SaveTransactionOffline {
 
         try {
 
-                // read transaction from file
+            // read transaction from file
             SignedTransaction decodedTransaction = Encoder.decodeFromMsgPack(
                 Files.readAllBytes(Paths.get("./unsigned.txn")), SignedTransaction.class);            
             Transaction tx = decodedTransaction.tx;           
@@ -215,7 +215,7 @@ public class SaveTransactionOffline {
         final String PASSPHRASE = "patrol target joy dial ethics flip usual fatigue bulb security prosper brand coast arch casino burger inch cricket scissors shoe evolve eternal calm absorb school";
         com.algorand.algosdk.account.Account myAccount = new Account(PASSPHRASE);
         System.out.println("My Address: " + myAccount.getAddress());
-
+        // read signed transaction
         try {
             SignedTransaction decodedSignedTransaction = Encoder.decodeFromMsgPack(
                 Files.readAllBytes(Paths.get("./signed.txn")), SignedTransaction.class);     
@@ -256,7 +256,7 @@ public class SaveTransactionOffline {
     }
 
     public static void main(String args[]) throws Exception {
-        SaveTransactionOffline t = new SaveTransactionOffline();
+        Offline t = new Offline();
         //t.writeUnsignedTransaction();
         //t.readUnsignedTransaction();
 

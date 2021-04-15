@@ -1,6 +1,6 @@
 const algosdk = require('algosdk');
 const fs = require('fs');
-var client = null;
+let  client = null;
 // make connection to node
 async function setupClient() {
     if( client == null){
@@ -20,21 +20,7 @@ function recoverAccount(){
     let myAccount = algosdk.mnemonicToSecretKey(passphrase);
     return myAccount;
 }
-// Function used to wait for a tx confirmation
-// const waitForConfirmation = async function (algodclient, txId) {
-//     let status = (await algodclient.status().do());
-//     let lastRound = status["last-round"];
-//       while (true) {
-//         const pendingInfo = await algodclient.pendingTransactionInformation(txId).do();
-//          if (pendingInfo["confirmed-round"] !== null && pendingInfo["confirmed-round"] > 0) {
-//           //Got the completed Transaction
-//           console.log("Transaction " + txId + " confirmed in round " + pendingInfo["confirmed-round"]);
-//           break;
-//         }
-//         lastRound++;
-//         await algodclient.statusAfterBlock(lastRound).do();
-//       }
-//     };
+
 /**
  * utility function to wait on a transaction to be confirmed
  * the timeout parameter indicates how many rounds do you wish to check pending transactions for
@@ -83,7 +69,6 @@ async function writeUnsignedTransactionToFile() {
 
         // setup accounts and make node connection
         let algodClient = await setupClient();
-
         // recover account
         let myAccount = await recoverAccount();
         console.log("My address: %s", myAccount.addr)
@@ -93,9 +78,7 @@ async function writeUnsignedTransactionToFile() {
         const enc = new TextEncoder();
         const note = enc.encode("Hello World");
         console.log(note);
-     //   let note = algosdk.encodeObj("Hello World");
         let txn = algosdk.makePaymentTxnWithSuggestedParams(myAccount.addr, receiver, 1000000, undefined, note, params);        
-
         // Save transaction to file
         fs.writeFileSync('./unsigned.txn', algosdk.encodeUnsignedTransaction( txn ));   
     }catch( e ){
@@ -117,19 +100,15 @@ async function readUnsignedTransactionFromFile() {
         let signedTxn = algosdk.signTransaction(txn, myAccount.sk);
         let txId = signedTxn.txID;
         console.log("Signed transaction with txID: %s", txId);
-
         // send signed transaction to node
         await algodClient.sendRawTransaction(signedTxn.blob).do();
-
         // Wait for transaction to be confirmed
-        // await waitForConfirmation(algodClient, txId);
-        // Wait for confirmation
         let confirmedTxn = await waitForConfirmation(algodClient, tx.txId, 4);
         //Get the completed Transaction
         console.log("Transaction " + tx.txId + " confirmed in round " + confirmedTxn["confirmed-round"]);
         let mytxinfo = JSON.stringify(confirmedTxn.txn.txn, undefined, 2);
         console.log("Transaction information: %o", mytxinfo);
-        var string = new TextDecoder().decode(confirmedTxn.txn.txn.note);
+        let  string = new TextDecoder().decode(confirmedTxn.txn.txn.note);
         console.log("Note field: ", string);
 
     } catch ( e ){
@@ -148,13 +127,11 @@ async function writeSignedTransactionToFile() {
 
         // get network suggested parameters
         let params = await algodClient.getTransactionParams().do();
-
         // setup a transaction
         const enc = new TextEncoder();
         const note = enc.encode("Hello World");
         console.log(note);
         let txn = algosdk.makePaymentTxnWithSuggestedParams(myAccount.addr, receiver, 1000000, undefined, note, params);        
-
         // sign transaction and write to file
         let signedTxn = txn.signTxn(myAccount.sk);
         fs.writeFileSync('./signed.stxn', signedTxn );  
@@ -171,22 +148,16 @@ async function readSignedTransactionFromFile() {
 
         // read signed transaction from file
         let stx = fs.readFileSync("./signed.stxn");
-
         // send signed transaction to node
         let tx = await algodClient.sendRawTransaction(stx).do();
         console.log("Signed transaction with txID: %s", tx.txId);
-
-        // Wait for transaction to be confirmed
-        // await waitForConfirmation(algodClient, tx.txId);
-
-
         // Wait for confirmation
         let confirmedTxn = await waitForConfirmation(algodClient, tx.txId, 4);
         //Get the completed Transaction
         console.log("Transaction " + tx.txId + " confirmed in round " + confirmedTxn["confirmed-round"]);
         let mytxinfo = JSON.stringify(confirmedTxn.txn.txn, undefined, 2);
         console.log("Transaction information: %o", mytxinfo);
-        var string = new TextDecoder().decode(confirmedTxn.txn.txn.note);
+        let  string = new TextDecoder().decode(confirmedTxn.txn.txn.note);
         console.log("Note field: ", string);
 
 

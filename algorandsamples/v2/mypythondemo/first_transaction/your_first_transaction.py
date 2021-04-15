@@ -72,11 +72,12 @@ def getting_started_example():
 
 	# sign transaction
 	signed_txn = unsigned_txn.sign(mnemonic.to_private_key(passphrase))
-	txid = algod_client.send_transaction(signed_txn)
-	print("Signed transaction with txID: {}".format(txid))
+
 
     # wait for confirmation	
 	try:
+		txid = algod_client.send_transaction(signed_txn)
+		print("Signed transaction with txID: {}".format(txid))
 		confirmed_txn = wait_for_confirmation(algod_client, txid, 4)  
 	except Exception as err:
 		print(err)

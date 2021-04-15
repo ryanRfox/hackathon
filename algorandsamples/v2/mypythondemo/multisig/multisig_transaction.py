@@ -41,6 +41,7 @@ def wait_for_confirmation(client, transaction_id, timeout):
     current_round = start_round
 
     while current_round < start_round + timeout:
+       
         try:
             pending_txn = client.pending_transaction_info(transaction_id)
         except Exception:
@@ -52,6 +53,7 @@ def wait_for_confirmation(client, transaction_id, timeout):
                 'pool error: {}'.format(pending_txn["pool-error"]))
         client.status_after_block(current_round)                   
         current_round += 1
+        print("Checking Round: ", current_round) 
     raise Exception(
         'pending tx not found in timeout rounds, timeout value = : {}'.format(timeout))
 
@@ -73,9 +75,8 @@ print("Please go to: https://bank.testnet.algorand.network/ to fund multisig acc
 # sandbox
 algod_address = "http://localhost:4001"
 algod_token = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-# local
-# algod_address = "http://localhost:8080"
-# algod_token = "8024065d94521d253181cff008c44fa4ae4bdf44f028834cd4b4769a26282de1"
+# algod_address = "http://hackathon.algodev.network:9100"
+# algod_token = "ef920e2e7e002953f4b29a8af720efe8e4ecc75ff102b165e0472834b25832c1"
 
 # Initialize an algod client
 algod_client = algod.AlgodClient(algod_token, algod_address)
@@ -103,12 +104,14 @@ mtx.sign(private_key_2)
 # print encoded transaction
 # print(encoding.msgpack_encode(mtx))
 
-# send the transaction
-txid = algod_client.send_raw_transaction(
-    encoding.msgpack_encode(mtx))
+
     # wait for confirmation	
 try:
-    confirmed_txn = wait_for_confirmation(algod_client, txid, 4)  
+# send the transaction
+    txid = algod_client.send_raw_transaction(
+    encoding.msgpack_encode(mtx))    
+    print("TXID: ", txid)   
+    confirmed_txn = wait_for_confirmation(algod_client, txid, 6)  
     print("Transaction information: {}".format(
         json.dumps(confirmed_txn, indent=4)))
     print("Decoded note: {}".format(base64.b64decode(

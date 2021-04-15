@@ -52,11 +52,11 @@ const port = 4001;
 
 
 //Recover the account
-var mnemonic = "price clap dilemma swim genius fame lucky crack torch hunt maid palace ladder unlock symptom rubber scale load acoustic drop oval cabbage review abstract embark"
-var recoveredAccount = algosdk.mnemonicToSecretKey(mnemonic);
+let  mnemonic = "price clap dilemma swim genius fame lucky crack torch hunt maid palace ladder unlock symptom rubber scale load acoustic drop oval cabbage review abstract embark"
+let  recoveredAccount = algosdk.mnemonicToSecretKey(mnemonic);
 console.log(recoveredAccount.addr);
 //check to see if account is valid
-var isValid = algosdk.isValidAddress(recoveredAccount.addr);
+let  isValid = algosdk.isValidAddress(recoveredAccount.addr);
 console.log("Is this a valid address: " + isValid);
 
 //instantiate the algod wrapper
@@ -96,7 +96,7 @@ let algodClient = new algosdk.Algodv2(token, server, port);
     console.log("Transaction " + txId + " confirmed in round " + confirmedTxn["confirmed-round"]);
     let mytxinfo = JSON.stringify(confirmedTxn.txn.txn, undefined, 2);
     console.log("Transaction information: %o", mytxinfo);
-    var string = new TextDecoder().decode(confirmedTxn.txn.txn.note);
+    let  string = new TextDecoder().decode(confirmedTxn.txn.txn.note);
     console.log("Note field: ", string);
     const obj = JSON.parse(string);
     console.log("Note first name: %s", obj.firstName);

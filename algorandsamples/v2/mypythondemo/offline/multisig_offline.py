@@ -221,11 +221,11 @@ def read_multisig_signed_transaction_from_file():
     msigs = transaction.retrieve_from_file(dir_path + "/signed.mtx")
     mtx = msigs[0]
 
-    # send the transaction
-    txid = algod_client.send_raw_transaction(
-        encoding.msgpack_encode(mtx))
-        # wait for confirmation	
     try:
+    # send the transaction
+        txid = algod_client.send_raw_transaction(
+        encoding.msgpack_encode(mtx))        
+         # wait for confirmation	       
         confirmed_txn = wait_for_confirmation(algod_client, txid, 4)  
         print("Transaction information: {}".format(
             json.dumps(confirmed_txn, indent=4)))

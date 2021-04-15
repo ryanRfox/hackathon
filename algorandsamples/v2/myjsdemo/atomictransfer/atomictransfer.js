@@ -1,6 +1,6 @@
 const algosdk = require('algosdk');
 
-var client = null;
+let  client = null;
 async function setupClient() {
     if (client == null) {
         const token = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";

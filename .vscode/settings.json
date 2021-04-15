@@ -1,7 +1,8 @@
 {
     "java.configuration.updateBuildConfiguration": "automatic",
-    "editor.fontLigatures": null,
+    "editor.fontLigatures": true,
     "go.toolsEnvVars": {
-        "GO111MODULE": "off"
+        "GO111MODULE": "off",
+        "GOFLAGS": "-tags=test"
     },
 }

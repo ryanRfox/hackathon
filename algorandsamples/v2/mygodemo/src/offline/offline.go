@@ -260,7 +260,7 @@ func readSignedTransaction() {
 		fmt.Printf("Issue with creating algod client: %s\n", err)
 		return
 	}
-	// read unsigned transaction from file
+	// read signed transaction from file
 	dat, err := ioutil.ReadFile("./signed.stxn")
 	if err != nil {
 		fmt.Printf("Error reading signed transaction from file: %s\n", err)

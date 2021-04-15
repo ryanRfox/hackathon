@@ -31,7 +31,7 @@ let algodclient = new algosdk.Algodv2(token, server, port);
 
 (async () => {
     // Read file for Teal code - int 0
-    var fs = require('fs'),
+    let  fs = require('fs'),
         path = require('path'),
         filePath = path.join(__dirname, 'sample.teal');
     //  filePath = path.join(__dirname, '<filename>');    

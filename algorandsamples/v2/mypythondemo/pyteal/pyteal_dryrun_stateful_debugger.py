@@ -85,8 +85,8 @@ global_bytes = 0
 global_schema = StateSchema(global_ints, global_bytes)
 local_schema = StateSchema(local_ints, local_bytes)
 # define private keys
-creator_mnemonic = "tobacco ceiling aspect brand sibling empower cruise stand artwork entry reform ketchup reveal obtain either jeans steak frozen rubber olympic slot total foot able abandon"
-user_mnemonic = "market bag uniform exotic surge example era project dog hawk two annual first flat crush nurse have poverty party off exchange dose express abandon design"
+creator_mnemonic = "gather bonus humble shrimp lava interest patient clarify can monster cable please claw letter alpha business traffic lion party soap tissue feed parade about elder"
+user_mnemonic = "stand certain cloth decide baby obey begin rebel luxury firm crater obtain feel sponsor mimic west exit trend exotic appear want zoo ticket absorb keep"
 
 
 def get_private_key_from_mnemonic(mn):

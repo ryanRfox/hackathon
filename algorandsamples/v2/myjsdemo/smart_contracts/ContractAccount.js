@@ -50,7 +50,7 @@ let algodclient = new algosdk.Algodv2(token, server, port);
     // int 12345
     // ==
     // see more info here: https://developer.algorand.org/docs/features/asc1/sdks/#accessing-teal-program-from-sdks
-    var fs = require('fs'),
+    let  fs = require('fs'),
         path = require('path'),
         filePath = path.join(__dirname, 'samplearg.teal');
         // filePath = path.join(__dirname, '<filename>');

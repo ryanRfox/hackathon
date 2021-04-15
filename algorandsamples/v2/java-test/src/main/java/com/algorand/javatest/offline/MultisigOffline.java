@@ -1,4 +1,4 @@
-package com.algorand.javatest.multisig;
+package com.algorand.javatest.offline;
 
 import java.io.Console;
 import java.math.BigInteger;

@@ -152,14 +152,6 @@ func saveUnsignedMultisigTransaction() {
 	if err != nil {
 		panic("invalid multisig parameters")
 	}
-	// Check account balance
-	// accountInfo, err := algodClient.AccountInformation(addr1.String()).Do(context.Background())
-	// if err != nil {
-	// 	fmt.Printf("Error getting account info: %s\n", err)
-	// 	return
-	// }
-	// fmt.Printf("Account balance: %d microAlgos\n", accountInfo.Amount)
-
 	// Construct the transaction
 	txParams, err := algodClient.SuggestedParams().Do(context.Background())
 	if err != nil {
@@ -390,6 +382,7 @@ func readSignedMultisigTransaction() {
 
 	fmt.Printf("Decoded note: %s\n", string(confirmedTxn.Transaction.Txn.Note))
 }
+
 func main() {
 
 	// saveUnsignedMultisigTransaction()

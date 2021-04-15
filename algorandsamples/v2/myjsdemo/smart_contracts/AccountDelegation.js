@@ -12,7 +12,7 @@ const fs = require('fs');
 // let PASSPHRASE = "<25-word-mnemonic>";
 let PASSPHRASE = "awake used crawl list cruel harvest useful flag essay speed glad salmon camp sudden ride symptom test kind version together project inquiry diet abandon budget";
 
-var myAccount = algosdk.mnemonicToSecretKey(PASSPHRASE);
+let  myAccount = algosdk.mnemonicToSecretKey(PASSPHRASE);
 console.log("My Address: " + myAccount.addr);
 // Function used to wait for a tx confirmation
 const waitForConfirmation = async function (algodclient, txId) {
@@ -49,7 +49,7 @@ let algodclient = new algosdk.Algodv2(token, server, port);
     // int 12345
     // ==
     // see more info here: https://developer.algorand.org/docs/features/asc1/sdks/#accessing-teal-program-from-sdks
-    var fs = require('fs'),
+    let  fs = require('fs'),
         path = require('path'),
         filePath = path.join(__dirname, 'samplearg.teal');
     // filePath = path.join(__dirname, <'fileName'>);

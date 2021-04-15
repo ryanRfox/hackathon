@@ -167,7 +167,6 @@ async function readSignedMultisigTransctionFromFile() {
     const mparamstr = fs.readFileSync('./multisigparams.json');
     let string = new TextDecoder().decode(mparamstr);
     const mparams = JSON.parse(string);   
-    // const mparams = algosdk.decodeObj(fs.readFileSync('./multisig.mparams'));
     // read multisig mparams
     let multsigaddr = algosdk.multisigAddress(mparams);
     console.log("Multisig Address: " + multsigaddr);
@@ -218,7 +217,7 @@ async function writeUnsignedMultisigTransctionToFile() {
 
     let multsigaddr = algosdk.multisigAddress(mparams);
     console.log("Multisig Address: " + multsigaddr);
-    //Pause execution to allow using the dispenser on testnet to put tokens in account
+    // Pause execution to allow using the dispenser on testnet to put tokens in account
     console.log('Dispense funds to this account on TestNet https://bank.testnet.algorand.network/');
     // await keypress();
     try {
@@ -240,8 +239,7 @@ async function writeUnsignedMultisigTransctionToFile() {
         console.log("Unsigned tx was saved!");
         // write out mparams as json file
         let mparamsinfo = JSON.stringify(mparams, undefined, 2); 
-        fs.writeFileSync('./multisigparams.json', mparamsinfo)       
-        //fs.writeFileSync('./multisig.mparams', algosdk.encodeObj(mparams))           
+        fs.writeFileSync('./multisigparams.json', mparamsinfo)               
         console.log("The multisig params file was saved!"); 
 
     } catch (err) {
