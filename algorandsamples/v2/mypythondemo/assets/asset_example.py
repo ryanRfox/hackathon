@@ -1,4 +1,5 @@
 import json
+import base64
 from algosdk.v2client import algod
 from algosdk import account, mnemonic
 from algosdk.future.transaction import AssetConfigTxn, AssetTransferTxn, AssetFreezeTxn
@@ -10,9 +11,9 @@ from algosdk.future.transaction import AssetConfigTxn, AssetTransferTxn, AssetFr
 # mnemonic2 = "PASTE your phrase for account 2"
 # mnemonic3 = "PASTE your phrase for account 3"
 
-mnemonic1 = "canal enact luggage spring similar zoo couple stomach shoe laptop middle wonder eager monitor weather number heavy skirt siren purity spell maze warfare ability ten"
-mnemonic2 = "beauty nurse season autumn curve slice cry strategy frozen spy panic hobby strong goose employ review love fee pride enlist friend enroll clip ability runway"
-mnemonic3 = "picnic bright know ticket purity pluck stumble destroy ugly tuna luggage quote frame loan wealth edge carpet drift cinnamon resemble shrimp grain dynamic absorb edge"
+mnemonic1 = "nothing material goat machine silk exclude undo speed service dizzy trap owner brown old often start fire van ring trap mammal decade number absent panel"
+mnemonic2 = "ignore pottery token buzz slide once aim fan health ski punch tuna drop legal lizard unaware peasant venue denial helmet royal hint river above type"
+mnemonic3 = "wrap emotion donor biology vivid bamboo tree snake bomb antenna mutual verb eternal disorder reform lunch scrap output frame jaguar call bleak venue ability whale"
 
 
 # For ease of reference, add account public and private keys to
@@ -29,26 +30,62 @@ for m in [mnemonic1, mnemonic2, mnemonic3]:
 # algod_address = ""  # ADD ADDRESS
 # algod_token = ""  # ADD TOKEN
 
-algod_address = "http://localhost:4001"
-algod_token = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+# algod_address = "http://localhost:4001"
+# algod_token = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 
+# algod_address = "http://hackathon.algodev.network:9100"
+# algod_token = "ef920e2e7e002953f4b29a8af720efe8e4ecc75ff102b165e0472834b25832c1"
+algod_address = "http://localhost:8080"
+algod_token = "8024065d94521d253181cff008c44fa4ae4bdf44f028834cd4b4769a26282de1"
+
+# 127.0.0.1:8080
+# 8024065d94521d253181cff008c44fa4ae4bdf44f028834cd4b4769a26282de1
 # Initialize an algod client
 algod_client = algod.AlgodClient(algod_token=algod_token, algod_address=algod_address)
 
-def wait_for_confirmation(client, txid):
+# def wait_for_confirmation(client, txid):
+#     """
+#     Utility function to wait until the transaction is
+#     confirmed before proceeding.
+#     """
+#     last_round = client.status().get('last-round')
+#     txinfo = client.pending_transaction_info(txid)
+#     while not (txinfo.get('confirmed-round') and txinfo.get('confirmed-round') > 0):
+#         print("Waiting for confirmation")
+#         last_round += 1
+#         client.status_after_block(last_round)
+#         txinfo = client.pending_transaction_info(txid)
+#     print("Transaction {} confirmed in round {}.".format(txid, txinfo.get('confirmed-round')))
+#     return txinfo
+# utility for waiting on a transaction confirmation
+def wait_for_confirmation(client, transaction_id, timeout):
     """
-    Utility function to wait until the transaction is
-    confirmed before proceeding.
+    Wait until the transaction is confirmed or rejected, or until 'timeout'
+    number of rounds have passed.
+    Args:
+        transaction_id (str): the transaction to wait for
+        timeout (int): maximum number of rounds to wait    
+    Returns:
+        dict: pending transaction information, or throws an error if the transaction
+            is not confirmed or rejected in the next timeout rounds
     """
-    last_round = client.status().get('last-round')
-    txinfo = client.pending_transaction_info(txid)
-    while not (txinfo.get('confirmed-round') and txinfo.get('confirmed-round') > 0):
-        print("Waiting for confirmation")
-        last_round += 1
-        client.status_after_block(last_round)
-        txinfo = client.pending_transaction_info(txid)
-    print("Transaction {} confirmed in round {}.".format(txid, txinfo.get('confirmed-round')))
-    return txinfo
+    start_round = client.status()["last-round"] + 1;
+    current_round = start_round
+
+    while current_round < start_round + timeout:
+        try:
+            pending_txn = client.pending_transaction_info(transaction_id)
+        except Exception:
+            return 
+        if pending_txn.get("confirmed-round", 0) > 0:
+            return pending_txn
+        elif pending_txn["pool-error"]:  
+            raise Exception(
+                'pool error: {}'.format(pending_txn["pool-error"]))
+        client.status_after_block(current_round)                   
+        current_round += 1
+    raise Exception(
+        'pending tx not found in timeout rounds, timeout value = : {}'.format(timeout))
 
 #   Utility function used to print created asset for account and assetid
 def print_created_asset(algodclient, account, assetid):    
@@ -117,15 +154,21 @@ txn = AssetConfigTxn(
 stxn = txn.sign(accounts[1]['sk'])
 
 # Send the transaction to the network and retrieve the txid.
-txid = algod_client.send_transaction(stxn)
-print(txid)
-
+try:
+    txid = algod_client.send_transaction(stxn)
+    print("Signed transaction with txID: {}".format(txid))
+    # Wait for the transaction to be confirmed
+    confirmed_txn = wait_for_confirmation(algod_client, txid, 4)  
+except Exception as err:
+    print(err)
 # Retrieve the asset ID of the newly created asset by first
 # ensuring that the creation transaction was confirmed,
 # then grabbing the asset id from the transaction.
 
-# Wait for the transaction to be confirmed
-wait_for_confirmation(algod_client,txid)
+print("Transaction information: {}".format(
+    json.dumps(confirmed_txn, indent=4)))
+# print("Decoded note: {}".format(base64.b64decode(
+#     confirmed_txn["txn"]["txn"]["note"]).decode()))
 
 try:
     # Pull account info for the creator
@@ -188,12 +231,18 @@ txn = AssetConfigTxn(
     clawback=accounts[2]['pk'])
 # sign by the current manager - Account 2
 stxn = txn.sign(accounts[2]['sk'])
-txid = algod_client.send_transaction(stxn)
-print(txid)
+# txid = algod_client.send_transaction(stxn)
+# print(txid)
 
 # Wait for the transaction to be confirmed
-wait_for_confirmation(algod_client, txid)
-
+# Send the transaction to the network and retrieve the txid.
+try:
+    txid = algod_client.send_transaction(stxn)
+    print("Signed transaction with txID: {}".format(txid))
+    # Wait for the transaction to be confirmed
+    confirmed_txn = wait_for_confirmation(algod_client, txid, 4)  
+except Exception as err:
+    print(err)
 # Check asset info to view change in management. manager should now be account 1
 print_created_asset(algod_client, accounts[1]['pk'], asset_id)
 # terminal output should be similar to...
@@ -243,10 +292,14 @@ if not holding:
         amt=0,
         index=asset_id)
     stxn = txn.sign(accounts[3]['sk'])
-    txid = algod_client.send_transaction(stxn)
-    print(txid)
-    # Wait for the transaction to be confirmed
-    wait_for_confirmation(algod_client, txid)
+    # Send the transaction to the network and retrieve the txid.
+    try:
+        txid = algod_client.send_transaction(stxn)
+        print("Signed transaction with txID: {}".format(txid))
+        # Wait for the transaction to be confirmed
+        confirmed_txn = wait_for_confirmation(algod_client, txid, 4)  
+    except Exception as err:
+        print(err)
     # Now check the asset holding for that account.
     # This should now show a holding with a balance of 0.
     print_asset_holding(algod_client, accounts[3]['pk'], asset_id)
@@ -276,10 +329,14 @@ txn = AssetTransferTxn(
     amt=10,
     index=asset_id)
 stxn = txn.sign(accounts[1]['sk'])
-txid = algod_client.send_transaction(stxn)
-print(txid)
-# Wait for the transaction to be confirmed
-wait_for_confirmation(algod_client, txid)
+# Send the transaction to the network and retrieve the txid.
+try:
+    txid = algod_client.send_transaction(stxn)
+    print("Signed transaction with txID: {}".format(txid))
+    # Wait for the transaction to be confirmed
+    confirmed_txn = wait_for_confirmation(algod_client, txid, 4)  
+except Exception as err:
+    print(err)
 # The balance should now be 10.
 print_asset_holding(algod_client, accounts[3]['pk'], asset_id)
 
@@ -309,10 +366,14 @@ txn = AssetFreezeTxn(
     new_freeze_state=True   
     )
 stxn = txn.sign(accounts[2]['sk'])
-txid = algod_client.send_transaction(stxn)
-print(txid)
-# Wait for the transaction to be confirmed
-wait_for_confirmation(algod_client, txid)
+# Send the transaction to the network and retrieve the txid.
+try:
+    txid = algod_client.send_transaction(stxn)
+    print("Signed transaction with txID: {}".format(txid))
+    # Wait for the transaction to be confirmed
+    confirmed_txn = wait_for_confirmation(algod_client, txid, 4)  
+except Exception as err:
+    print(err)
 # The balance should now be 10 with frozen set to true.
 print_asset_holding(algod_client, accounts[3]['pk'], asset_id)
 
@@ -344,10 +405,14 @@ txn = AssetTransferTxn(
     revocation_target=accounts[3]['pk']
     )
 stxn = txn.sign(accounts[2]['sk'])
-txid = algod_client.send_transaction(stxn)
-print(txid)
-# Wait for the transaction to be confirmed
-wait_for_confirmation(algod_client, txid)
+# Send the transaction to the network and retrieve the txid.
+try:
+    txid = algod_client.send_transaction(stxn)
+    print("Signed transaction with txID: {}".format(txid))
+    # Wait for the transaction to be confirmed
+    confirmed_txn = wait_for_confirmation(algod_client, txid, 4)  
+except Exception as err:
+    print(err)
 # The balance of account 3 should now be 0.
 # account_info = algod_client.account_info(accounts[3]['pk'])
 print("Account 3")
@@ -395,10 +460,14 @@ txn = AssetConfigTxn(
 # Sign with secret key of creator
 stxn = txn.sign(accounts[1]['sk'])
 # Send the transaction to the network and retrieve the txid.
-txid = algod_client.send_transaction(stxn)
-print(txid)
-# Wait for the transaction to be confirmed
-wait_for_confirmation(algod_client, txid)
+# Send the transaction to the network and retrieve the txid.
+try:
+    txid = algod_client.send_transaction(stxn)
+    print("Signed transaction with txID: {}".format(txid))
+    # Wait for the transaction to be confirmed
+    confirmed_txn = wait_for_confirmation(algod_client, txid, 4)  
+except Exception as err:
+    print(err)
 
 # Asset was deleted.
 try:
