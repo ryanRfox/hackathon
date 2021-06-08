@@ -23,15 +23,15 @@ public class SearchTransactionsNote {
     public static void main(String args[]) throws Exception {
         IndexerClient indexerClientInstance = connectToNetwork();
         Response<TransactionsResponse> resp = indexerClientInstance.searchForTransactions()
-                .notePrefix("showing prefix".getBytes())
-                .minRound(11551185L)
-                .execute();
+                .notePrefix("{\"firstName\":\"John\"".getBytes())
+                .minRound(10894697L)
+                .maxRound(10994697L).execute();
         if (!resp.isSuccessful()) {
             throw new Exception(resp.message());
         }
 
         // pretty print json
-        JSONObject jsonObj = new JSONObject(resp.toString());
+        JSONObject jsonObj = new JSONObject(resp.body().toString());
         System.out.println("Transaction Info: " + jsonObj.toString(2));
 
         int i = 0;
