@@ -19,7 +19,7 @@ public class SearchAssets {
     public static void main(String args[]) throws Exception {
         SearchAssets ex = new SearchAssets();
         IndexerClient indexerClientInstance = (IndexerClient)ex.connectToNetwork();
-        Long asset_id = Long.valueOf(2044572);        
+        Long asset_id = Long.valueOf(12215366);        
         Response<AssetsResponse> response = indexerClientInstance
             .searchForAssets()
             .assetId(asset_id).execute();
