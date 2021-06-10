@@ -26,7 +26,8 @@ public class SearchTransactionsPaging {
         SearchTransactionsPaging ex = new SearchTransactionsPaging();
         IndexerClient indexerClientInstance = (IndexerClient) ex.connectToNetwork();
         String nexttoken = "";
-        Integer numtx = 1;               
+        Integer numtx = 1;  
+        Long maxround=Long.valueOf(30000);           
         // loop until there are no more transactions in the response
         // for the limit (max limit is 1000 per request)
         while (numtx > 0) {
@@ -37,6 +38,7 @@ public class SearchTransactionsPaging {
                 .searchForTransactions()
                 .next(next_page)
                 .currencyGreaterThan(min_amount)
+                .maxRound(maxround)
                 .limit(limit).execute();
             if (!response.isSuccessful()) {
                 throw new Exception(response.message());
