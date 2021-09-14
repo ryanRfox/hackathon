@@ -46,8 +46,11 @@ public class AccountsAppIDPaging {
                     JSONObject jsonObjAll = new JSONObject(response.body().toString());
                     System.out.println("Account Info for Application ID : " + jsonObjAll.toString(2)); // pretty print json
                     // note, if nexttoken is an empty string this call will fail
-                    response = indexerClientInstance.searchForAccounts().applicationId(app_id).next(nexttoken)
-                            .limit(limit).execute();    
+                    response = indexerClientInstance
+                        .searchForAccounts()
+                        .applicationId(app_id)
+                        .next(nexttoken)
+                        .limit(limit).execute();    
                 }
             } 
 

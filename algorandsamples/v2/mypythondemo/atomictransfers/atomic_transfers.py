@@ -25,8 +25,12 @@ mnemonic_2 = "unlock garage rack news treat bonus census describe stuff habit ha
 mnemonic_3 = "obey plate another blur jungle dynamic noise gift coach belt chronic pair hybrid valve blouse page submit typical poet hole hold begin doll ability master"
 
 # user declared algod connection parameters
-algod_address = "http://localhost:4001"
-algod_token = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+# algod_address = "http://localhost:4001"
+# algod_token = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+# algod_address = "http://localhost:8080"
+# algod_token = "8024065d94521d253181cff008c44fa4ae4bdf44f028834cd4b4769a26282de1"
+algod_token = "2f3203f21e738a1de6110eba6984f9d03e5a95d7a577b34616854064cf2c0e7b"
+algod_address = "https://academy-algod.dev.aws.algodev.network/"
 
 # Function that waits for a given txId to be confirmed by the network
 
@@ -56,11 +60,11 @@ def get_address(mn):
 
 
 def generate_new_account():
-	private_key, address = account.generate_account()
-	print("Created new account: ", address)
-	print("Generated mnemonic: \"{}\"".format(
-	    mnemonic.from_private_key(private_key)))
-	return address
+    private_key, address = account.generate_account()
+    print("Created new account: ", address)
+    print("Generated mnemonic: \"{}\"".format(
+        mnemonic.from_private_key(private_key)))
+    return address
 
 # utility function to display account balance
 
@@ -71,7 +75,7 @@ def display_account_algo_balance(client, address):
 
 
 def group_transactions():
-	# Initialize an algodClient
+    # Initialize an algodClient
     algod_client = algod.AlgodClient(algod_token, algod_address)
 
 # declared account1 and account2 based on user supplied mnemonics

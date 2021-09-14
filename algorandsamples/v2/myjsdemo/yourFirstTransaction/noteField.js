@@ -75,12 +75,13 @@ let algodClient = new algosdk.Algodv2(token, server, port);
     params.flatFee = true;
     // receiver defined as TestNet faucet address 
     const receiver = "GD64YIY3TWGDMCNPP553DZPPR6LDUSFQOIJVFDPPXWEG3FVOJCCDBBHU5A";
-    let names = '{"firstName":"John", "lastName":"Doe"}';
+    // let names = '{"firstName":"John", "lastName":"Doe"}';
     const enc = new TextEncoder();
-    const note = enc.encode(names);
+    let note = enc.encode("Hello World");
+    // let note = enc.encode('[{"_id":"60c9dc007b9206a8a641f2e8"]}]');
     console.log(note);      
     let txn = algosdk.makePaymentTxnWithSuggestedParams(recoveredAccount.addr,
-        receiver, 1000000, undefined, note, params);
+        receiver, 100000, undefined, note, params);
 
     // Sign the transaction
     let signedTxn = txn.signTxn(recoveredAccount.sk);

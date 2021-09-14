@@ -85,8 +85,8 @@ global_bytes = 0
 global_schema = StateSchema(global_ints, global_bytes)
 local_schema = StateSchema(local_ints, local_bytes)
 # define private keys
-creator_mnemonic = "gather bonus humble shrimp lava interest patient clarify can monster cable please claw letter alpha business traffic lion party soap tissue feed parade about elder"
-user_mnemonic = "stand certain cloth decide baby obey begin rebel luxury firm crater obtain feel sponsor mimic west exit trend exotic appear want zoo ticket absorb keep"
+creator_mnemonic = "burst term load cactus virtual fan punch medal bulb truth sugar below fame below glow ankle scorpion miracle cupboard trophy ability tip asthma absent inhale"
+user_mnemonic = "reopen demand depart jewel host smooth genius catalog alone account ancient valve industry poet swim volcano cousin dismiss toward expand agree tattoo jealous above helmet"
 
 
 def get_private_key_from_mnemonic(mn):
@@ -254,13 +254,12 @@ def call_app(client, private_key_user, index, app_args, approval_program_source,
     #
     # or use this line to invoke debugger
     # and switch to chrome://inspect to inspect and debug
-    # (program execution will continue aafter debuigging session completes)
+    # (program execution will continue after debuigging session completes)
 
     dir_path = os.path.dirname(os.path.realpath(__file__))
     drrpath = os.path.join(dir_path, drr_file_name)
     programpath = os.path.join(dir_path, teal_file_name)
-    stdout, stderr = execute(
-        ["tealdbg", "debug", programpath, "--dryrun-req", drrpath])
+    # stdout, stderr = execute(["tealdbg", "debug", programpath, "--dryrun-req", drrpath])
 
     # send transaction
     client.send_transactions([signed_txn])
@@ -453,23 +452,26 @@ def main():
 
     # read TEAL program
     # data = load_resource(myprogram)
-    algod_address = "http://localhost:4001"
-    algod_token = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    # algod_address = "http://localhost:4001"
+    # algod_token = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    algod_address = "http://localhost:8080"
+    algod_token = "8024065d94521d253181cff008c44fa4ae4bdf44f028834cd4b4769a26282de1"
+
     # create algod clients
     acl = algod.AlgodClient(algod_token, algod_address)
 
     # compile programs approval_program_source
     # and approval_program_source_refactored
     approval_program_source = compileTeal(
-        approval_program_initial(), Mode.Application)
+        approval_program_initial(), Mode.Application, version=2)
     write_teal('hello_world.teal', approval_program_source)
 
     approval_program_refactored_source = compileTeal(
-        approval_program_refactored(), Mode.Application)
+        approval_program_refactored(), Mode.Application, version=2)
     write_teal('hello_world_updated.teal',
                approval_program_refactored_source)
 
-    clear_program_source = compileTeal(clear_state_program(), Mode.Application)
+    clear_program_source = compileTeal(clear_state_program(), Mode.Application, version=2)
     write_teal('hello_world_clear.teal', clear_program_source)
 
     approval_program_compiled = compile_program(acl, approval_program_source)

@@ -1,6 +1,8 @@
 package com.algorand.javatest.atomictransfer;
 
 
+import com.algorand.algosdk.v2.client.model.NodeStatusResponse;
+import com.algorand.algosdk.v2.client.model.PostTransactionsResponse;
 import java.io.ByteArrayOutputStream;
 
 import com.algorand.algosdk.account.Account;
@@ -13,6 +15,7 @@ import com.algorand.algosdk.transaction.SignedTransaction;
 import com.algorand.algosdk.transaction.Transaction;
 import com.algorand.algosdk.transaction.TxGroup;
 import com.algorand.algosdk.util.Encoder;
+import org.json.JSONObject;
 
 public class AtomicTransfer {
 
@@ -26,33 +29,52 @@ public class AtomicTransfer {
         final Integer ALGOD_PORT = 4001;
         final String ALGOD_API_TOKEN = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 
-        AlgodClient client = (AlgodClient) new AlgodClient(ALGOD_API_ADDR, ALGOD_PORT, ALGOD_API_TOKEN);
+        AlgodClient client = new AlgodClient(ALGOD_API_ADDR, ALGOD_PORT, ALGOD_API_TOKEN);
         return client;
     }
 
 
-    // utility function to wait on a transaction to be confirmed
-    public void waitForConfirmation(String txID) throws Exception {
-        if (client == null)
-            this.client = connectToNetwork();
-        Long lastRound = client.GetStatus().execute().body().lastRound;
-        while (true) {
-            try {
-                // Check the pending tranactions
-                Response<PendingTransactionResponse> pendingInfo = client.PendingTransactionInformation(txID).execute();
-                if (pendingInfo.body().confirmedRound != null && pendingInfo.body().confirmedRound > 0) {
-                    // Got the completed Transaction
-                    System.out.println(
-                            "Transaction " + txID + " confirmed in round " + pendingInfo.body().confirmedRound);
-                    break;
-                }
-                lastRound++;
-                client.WaitForBlock(lastRound).execute();
-            } catch (Exception e) {
-                throw (e);
-            }
+    /**
+     * utility function to wait on a transaction to be confirmed
+     * the timeout parameter indicates how many rounds do you wish to check pending transactions for
+     */
+    public PendingTransactionResponse waitForConfirmation(AlgodClient myclient, String txID, Integer timeout)
+    throws Exception {
+        if (myclient == null || txID == null || timeout < 0) {
+            throw new IllegalArgumentException("Bad arguments for waitForConfirmation.");
         }
+        Response < NodeStatusResponse > resp = myclient.GetStatus().execute();
+        if (!resp.isSuccessful()) {
+            throw new Exception(resp.message());
+        }
+        NodeStatusResponse nodeStatusResponse = resp.body();
+        Long startRound = nodeStatusResponse.lastRound + 1;
+        Long currentRound = startRound;
+        while (currentRound < (startRound + timeout)) {
+            // Check the pending transactions                 
+            Response < PendingTransactionResponse > resp2 = myclient.PendingTransactionInformation(txID).execute();
+            if (resp2.isSuccessful()) {
+                PendingTransactionResponse pendingInfo = resp2.body();
+                if (pendingInfo != null) {
+                    if (pendingInfo.confirmedRound != null && pendingInfo.confirmedRound > 0) {
+                        // Got the completed Transaction
+                        return pendingInfo;
+                    }
+                    if (pendingInfo.poolError != null && pendingInfo.poolError.length() > 0) {
+                        // If there was a pool error, then the transaction has been rejected!
+                        throw new Exception("The transaction has been rejected with a pool error: " + pendingInfo.poolError);
+                    }
+                }
+            }
+            resp = myclient.WaitForBlock(currentRound).execute();
+            if (!resp.isSuccessful()) {
+                throw new Exception(resp.message());
+            }
+            currentRound++;
+        }
+        throw new Exception("Transaction not confirmed after " + timeout + " rounds!");
     }
+    
     public void AtomicTransfer() throws Exception {
 
         if (client == null)
@@ -103,10 +125,19 @@ public class AtomicTransfer {
             byte groupTransactionBytes[] = byteOutputStream.toByteArray();
 
             // send transaction group
-            String id = client.RawTransaction().rawtxn(groupTransactionBytes).execute().body().txId;
+            Response<PostTransactionsResponse> response = client.RawTransaction().rawtxn(groupTransactionBytes).execute();
+            if (!response.isSuccessful()){
+                throw new Exception(response.message());
+            }
+            String id = response.body().txId;
             // wait for confirmation
-            waitForConfirmation(id);
-            System.out.println("Successfully sent tx with ID: " + id);
+                        // Wait for transaction confirmation
+            PendingTransactionResponse pTrx = waitForConfirmation(client, id, 4);
+            System.out.println("Transaction " + id + " confirmed in round " + pTrx.confirmedRound);
+            // Read the transaction
+            JSONObject jsonObj = new JSONObject(pTrx.toString());
+            System.out.println("Transaction information (with notes): " + jsonObj.toString(2));
+
         } catch (Exception e) {
             System.out.println("Submit Exception: " + e);
         }

@@ -12,6 +12,7 @@ import com.algorand.algosdk.v2.client.model.PendingTransactionResponse;
 import com.algorand.algosdk.v2.client.model.PostTransactionsResponse;
 import com.algorand.algosdk.v2.client.model.TransactionParametersResponse;
 import org.json.JSONObject;
+import org.apache.commons.lang3.ArrayUtils;
 
 public class YourFirstTransaction {
     public AlgodClient client = null;
@@ -21,16 +22,20 @@ public class YourFirstTransaction {
 
         // final String ALGOD_API_ADDR = "https://testnet-algorand.api.purestake.io/ps2";
         // Initialize an algod client
-        final String ALGOD_API_ADDR = "localhost";
-        final Integer ALGOD_PORT = 4001;
-        final String ALGOD_API_TOKEN = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
-
         // AlgodClient client = (AlgodClient) new AlgodClient(ALGOD_API_ADDR, ALGOD_PORT, ALGOD_API_TOKEN);
         // hackathon - demos instance
         // final String ALGOD_API_ADDR = "http://hackathon.algodev.network";
         // final Integer ALGOD_PORT = 9100;
         // final String ALGOD_API_TOKEN = "ef920e2e7e002953f4b29a8af720efe8e4ecc75ff102b165e0472834b25832c1";
-
+        final String ALGOD_API_ADDR = "localhost";
+        final Integer ALGOD_PORT = 4001;
+        final String ALGOD_API_TOKEN = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+        // final String ALGOD_API_ADDR = "https://testnet.algoexplorerapi.io/";
+        // final Integer ALGOD_PORT = 443;
+        // final String ALGOD_API_TOKEN = "";
+        // final String ALGOD_API_TOKEN = "2f3203f21e738a1de6110eba6984f9d03e5a95d7a577b34616854064cf2c0e7b";
+        // final String ALGOD_API_ADDR = "https://academy-algod.dev.aws.algodev.network/";
+        // final Integer ALGOD_PORT = 443;
         AlgodClient client = new AlgodClient(ALGOD_API_ADDR,
             ALGOD_PORT, ALGOD_API_TOKEN);
         return client;
@@ -82,10 +87,11 @@ public class YourFirstTransaction {
         if (client == null)
             this.client = connectToNetwork();
         // Import your private key mnemonic and address
-        final String PASSPHRASE = "patrol target joy dial ethics flip usual fatigue bulb security prosper brand coast arch casino burger inch cricket scissors shoe evolve eternal calm absorb school";
+        final String PASSPHRASE = "catch mushroom provide tired doctor monitor blue order impose illegal venture sorry dwarf boost change deposit float curtain illness almost example carbon aunt absent canal";
         com.algorand.algosdk.account.Account myAccount = new Account(PASSPHRASE);
+      
         System.out.println("My Address: " + myAccount.getAddress());
-
+        System.out.println("My mnemonic: " + myAccount.toMnemonic());
         String myAddress = printBalance(myAccount);
 
         try {
@@ -104,7 +110,7 @@ public class YourFirstTransaction {
             Transaction txn = Transaction.PaymentTransactionBuilder()
                 .sender(myAddress)
                 .note(note.getBytes())
-                .amount(100000)
+                .amount(1000000)
                 .receiver(new Address(RECEIVER))
                 .suggestedParams(params)
                 .build();
@@ -112,15 +118,15 @@ public class YourFirstTransaction {
             // Sign the transaction
             SignedTransaction signedTxn = myAccount.signTransaction(txn);
             System.out.println("Signed transaction with txid: " + signedTxn.transactionID);
-
+            String[] headers = {"Content-Type"};
+            String[] values = {"application/x-binary"};
             // Submit the transaction to the network
             byte[] encodedTxBytes = Encoder.encodeToMsgPack(signedTxn);
-            Response < PostTransactionsResponse > rawtxresponse = client.RawTransaction().rawtxn(encodedTxBytes).execute();
+            Response < PostTransactionsResponse > rawtxresponse = client.RawTransaction().rawtxn(encodedTxBytes).execute(headers, values);
             if (!rawtxresponse.isSuccessful()) {
                 throw new Exception(rawtxresponse.message());
             }
             String id = rawtxresponse.body().txId;
-            System.out.println("Successfully sent tx with ID: " + id);
 
             // Wait for transaction confirmation
             PendingTransactionResponse pTrx = waitForConfirmation(client, id, 4);

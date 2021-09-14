@@ -155,7 +155,7 @@ public class Multisig {
             if (params == null) {
                 throw new Exception("Params retrieval error");
             }                      
-            BigInteger amount = BigInteger.valueOf(1000000); // microAlgos
+            BigInteger amount = BigInteger.valueOf(1000000); // 1000000 microAlgos = 1 Algo
             // add some notes to the transaction
             byte[] notes = "These are some notes encoded in some way!".getBytes();
             // Setup Transaction
@@ -179,7 +179,6 @@ public class Multisig {
                 throw new Exception(rawtxresponse.message());
             }
             String id = rawtxresponse.body().txId;
-            System.out.println("Successfully sent tx with ID: " + id);
             // Wait for transaction confirmation
             PendingTransactionResponse pTrx = waitForConfirmation(client, id, 4);
 

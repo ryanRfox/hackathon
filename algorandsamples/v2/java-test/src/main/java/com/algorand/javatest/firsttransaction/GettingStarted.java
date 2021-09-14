@@ -16,7 +16,7 @@ import org.json.JSONObject;
 
 class GettingStarted{
 
-        // Crete Account
+    // Create Account
     static Scanner scan = new Scanner(System.in);
 
     public Account createAccount()  throws Exception {
@@ -25,7 +25,7 @@ class GettingStarted{
             System.out.println("My Address: " + myAccount1.getAddress());
             System.out.println("My Passphrase: " + myAccount1.toMnemonic());
   
-            System.out.println("Navigate to this link:  https://dispenser.testnet.aws.algodev.network/?account=" + myAccount1.getAddress().toString());              
+            System.out.println("Navigate to this link:  https://dispenser.testnet.aws.algodev.network/");            
             System.out.println("Copy TestNet Account Address to Dispense Funds to: "); 
             System.out.println(myAccount1.getAddress().toString()); 
             System.out.println("PRESS ENTER KEY TO CONTINUE...");     
@@ -43,16 +43,24 @@ class GettingStarted{
         }
 
     } 
+    // final Integer ALGOD_PORT = 443;
+    // final String ALGOD_API_TOKEN = "";
+    // final String ALGOD_API_ADDR = "https://testnet.algoexplorerapi.io/";
 
     private AlgodClient client = null; 
       // utility function to connect to a node
-      private AlgodClient connectToNetwork() {
-      final Integer ALGOD_PORT = 443;
-      final String ALGOD_API_TOKEN = "";
-      final String ALGOD_API_ADDR = "https://testnet.algoexplorerapi.io/";
-      AlgodClient client = new AlgodClient(ALGOD_API_ADDR,
-          ALGOD_PORT, ALGOD_API_TOKEN);
-      return client;
+    private AlgodClient connectToNetwork() {
+        final String ALGOD_API_ADDR = "localhost";
+        final String ALGOD_API_TOKEN = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+        final Integer ALGOD_PORT = 4001;
+        // final String ALGOD_API_TOKEN = "2f3203f21e738a1de6110eba6984f9d03e5a95d7a577b34616854064cf2c0e7b";
+        // final String ALGOD_API_ADDR = "https://academy-algod.dev.aws.algodev.network/";
+        // final Integer ALGOD_PORT = 443;
+
+
+        AlgodClient client = new AlgodClient(ALGOD_API_ADDR,
+            ALGOD_PORT, ALGOD_API_TOKEN);
+        return client;
     }
     /**
       * utility function to wait on a transaction to be confirmed
@@ -106,7 +114,7 @@ class GettingStarted{
         return myAddress;
     }  
 
-    public void gettingStartedExample(Account myAccount) throws Exception {
+    public void firstTransaction(Account myAccount) throws Exception {
 
         if (client == null)
             this.client = connectToNetwork();
@@ -133,21 +141,18 @@ class GettingStarted{
                 .amount(1000000) // 1 algo = 1000000 microalgos
                 .receiver(new Address(RECEIVER))
                 .suggestedParams(params)
-                .closeRemainderTo(RECEIVER) // WARNING! all remaining funds in the sender account will be sent to the closeRemainderTo Account, omit RECEIVER account when in use otherwise all funds from the sender account will be sent to that account.
                 .build();
-            // CloseRemainder can be used to reset sender account to 0.
-            // Normally this would be omitted. For more info see: 
-            // https://developer.algorand.org/docs/reference/transactions/#payment-transaction
-            
+           
             // Sign the transaction
             SignedTransaction signedTxn = myAccount.signTransaction(txn);
             System.out.println("Signed transaction with txid: " + signedTxn.transactionID);
 
-           // AVPCLUTU27RHSKCXT6QYE3BY7EZ5PF7IP3BVFE4F6UA7FH4HJJWZHWCDII
-
+            // Submit the transaction to the network
+            String[] headers = {"Content-Type"};
+            String[] values = {"application/x-binary"};
             // Submit the transaction to the network
             byte[] encodedTxBytes = Encoder.encodeToMsgPack(signedTxn);
-            Response < PostTransactionsResponse > rawtxresponse = client.RawTransaction().rawtxn(encodedTxBytes).execute();
+            Response < PostTransactionsResponse > rawtxresponse = client.RawTransaction().rawtxn(encodedTxBytes).execute(headers, values);
             if (!rawtxresponse.isSuccessful()) {
                 throw new Exception(rawtxresponse.message());
             }
@@ -162,8 +167,10 @@ class GettingStarted{
             System.out.println("Transaction information (with notes): " + jsonObj2.toString(2));
             System.out.println("Decoded note: " + new String(pTrx.txn.tx.note));
             System.out.println("Amount: " + new String(pTrx.txn.tx.amount.toString())); 
-            System.out.println("Fee: " + new String(pTrx.txn.tx.fee.toString()));           
-            System.out.println("Closing Amount: " + new String(pTrx.closingAmount.toString()));   
+            System.out.println("Fee: " + new String(pTrx.txn.tx.fee.toString())); 
+            if (pTrx.closingAmount != null){
+             System.out.println("Closing Amount: " + new String(pTrx.closingAmount.toString()));                 
+            }          
             printBalance(myAccount);
 
         } catch (Exception e) {
@@ -171,16 +178,37 @@ class GettingStarted{
         }
     }
 
-      
-        
-      
-    
-
     public static void main(String args[]) throws Exception {
         GettingStarted t = new GettingStarted();
         Account myAccount1 = t.createAccount();
-        t.gettingStartedExample(myAccount1);
+        t.firstTransaction(myAccount1);
     }  
   } 
-      
-    
+ 
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// System.out.println("Navigate to this link:  https://dispenser.testnet.aws.algodev.network/?account=" + myAccount1.getAddress().toString());      
+
+
+//   .closeRemainderTo(RECEIVER) // WARNING! all remaining funds in the sender account will be sent to the closeRemainderTo Account, omit RECEIVER account when in use otherwise all funds from the sender account will be sent to that account.
+//   .build();
+// CloseRemainder can be used to reset sender account to 0.
+// Normally this would be omitted. For more info see: 
+// https://developer.algorand.org/docs/reference/transactions/#payment-transaction
