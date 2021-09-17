@@ -124,7 +124,7 @@ const printAssetHolding = async function (algodClient, account, assetid) {
 async function firstFT() {
 
     try {
-        let myAccount = createAccount();
+        let aliceAccount = createAccount();
         console.log("Press any key when the account is funded");
         await keypress();
         // Connect your client
@@ -138,7 +138,7 @@ async function firstFT() {
         let algodClient = new algosdk.Algodv2(algodToken, algodServer, algodPort);
 
         //Check your balance
-        let accountInfo = await algodClient.accountInformation(myAccount.addr).do();
+        let accountInfo = await algodClient.accountInformation(aliceAccount.addr).do();
         console.log("Account balance: %d microAlgos", accountInfo.amount);
         let startingAmount = accountInfo.amount;
         // Construct the transaction
@@ -158,7 +158,7 @@ async function firstFT() {
         // The following parameters are asset specific
         // Throughout the example these will be re-used. 
         // We will also change the manager later in the example
-        let addr = myAccount.addr;
+        let addr = aliceAccount.addr;
         // Whether user accounts will need to be unfrozen before transacting    
         let defaultFrozen = false;
 
@@ -216,15 +216,15 @@ async function firstFT() {
         // that can be changed, and they have to be changed
         // by the current manager
         // Specified address can change reserve, freeze, clawback, and manager
-        let manager = myAccount.addr;
+        let manager = aliceAccount.addr;
         // Specified address is considered the asset reserve
         // (it has no special privileges, this is only informational)
-        let reserve = myAccount.addr;
+        let reserve = aliceAccount.addr;
         // Specified address can freeze or unfreeze user asset holdings 
-        let freeze = myAccount.addr;
+        let freeze = aliceAccount.addr;
         // Specified address can revoke user asset holdings and send 
         // them to other addresses    
-        let clawback = myAccount.addr;
+        let clawback = aliceAccount.addr;
 
         // Use actual total  > 1 to create a Fungible Token
 
@@ -247,7 +247,7 @@ async function firstFT() {
             totalIssuance, decimals, defaultFrozen, manager, reserve, freeze,
             clawback, unitName, assetName, assetURL, assetMetadataHash, params);
 
-        let rawSignedTxn = txn.signTxn(myAccount.sk)
+        let rawSignedTxn = txn.signTxn(aliceAccount.sk)
         let tx = (await algodClient.sendRawTransaction(rawSignedTxn).do());
         console.log("Transaction : " + tx.txId);
         let assetID = null;
@@ -261,9 +261,92 @@ async function firstFT() {
         assetID = ptx["asset-index"];
         // console.log("AssetID = " + assetID);
 
-        await printCreatedAsset(algodClient, myAccount.addr, assetID);
-        await printAssetHolding(algodClient, myAccount.addr, assetID);
+        await printCreatedAsset(algodClient, aliceAccount.addr, assetID);
+        await printAssetHolding(algodClient, aliceAccount.addr, assetID);
+    // Destroy and Asset:
+    // All of the created assets should now be back in the creators
+    // Account so we can delete the asset.
+    // If this is not the case the asset deletion will fail
 
+    // First update changing transaction parameters
+    // We will account for changing transaction parameters
+    // before every transaction in this example
+
+    params = await algodClient.getTransactionParams().do();
+    //comment out the next two lines to use suggested fee
+    // params.fee = 1000;
+    // params.flatFee = true;
+
+    // The address for the from field must be the manager account
+    // Which is currently the creator aliceAccount
+    // addr = aliceAccount.addr;
+    note = undefined;
+    // if all assets are held by the asset creator,
+    // the asset creator can sign and issue "txn" to remove the asset from the ledger. 
+    let dtxn = algosdk.makeAssetDestroyTxnWithSuggestedParams(aliceAccount.addr, note, assetID, params);
+    // The transaction must be signed by the manager which 
+    // is currently set to aliceAccount
+    rawSignedTxn = dtxn.signTxn(aliceAccount.sk)
+    tx = (await algodClient.sendRawTransaction(rawSignedTxn).do());
+    // wait for transaction to be confirmed
+    confirmedTxn = await waitForConfirmation(algodClient, tx.txId, 4);
+    //Get the completed Transaction
+    console.log("Transaction " + tx.txId + " confirmed in round " + confirmedTxn["confirmed-round"]);
+
+
+
+    // The account should no longer contain the asset as it has been destroyed
+    console.log("Asset ID: " + assetID);
+    console.log("Account 1 = " + aliceAccount.addr);
+    await printCreatedAsset(algodClient, aliceAccount.addr, assetID);
+    await printAssetHolding(algodClient, aliceAccount.addr, assetID);
+    accountInfo = await algodClient.accountInformation(aliceAccount.addr).do(); 
+    let myaccount = JSON.stringify(accountInfo, undefined, 2);
+    console.log("Asset does not appear and is deleted from account: %s ", myaccount);
+    // return funds to dispenser
+    //Check your balance
+    accountInfo = await algodClient.accountInformation(aliceAccount.addr).do();
+    console.log("Account balance: %d microAlgos", accountInfo.amount);
+    startingAmount = accountInfo.amount;
+    // Construct the transaction
+    params = await algodClient.getTransactionParams().do();
+    // comment out the next two lines to use suggested fee
+    // params.fee = 1000;
+    // params.flatFee = true;
+
+    // receiver defined as TestNet faucet address 
+    const receiver = "HZ57J3K46JIJXILONBBZOHX6BKPXEM2VVXNRFSUED6DKFD5ZD24PMJ3MVA";
+    const enc = new TextEncoder();
+    note = enc.encode("Hello World");
+    let amount = 1000000;
+    let closeout = receiver; //closeRemainderTo - return remainder to TestNet faucet
+    let sender = aliceAccount.addr;
+    txn = algosdk.makePaymentTxnWithSuggestedParams(sender, receiver, amount, closeout, note, params);
+    // WARNING! all remaining funds in the sender account above will be sent to the closeRemainderTo Account 
+    // In order to keep all remaning funds in the sender account after tx, set closeout parameter to undefined.
+    // For more info see: 
+    // https://developer.algorand.org/docs/reference/transactions/#payment-transaction
+
+    // Sign the transaction
+    let signedTxn = txn.signTxn(aliceAccount.sk);
+    let txId = txn.txID().toString();
+    console.log("Signed transaction with txID: %s", txId);
+
+    // Submit the transaction
+    await algodClient.sendRawTransaction(signedTxn).do();
+
+    // Wait for confirmation
+    confirmedTxn = await waitForConfirmation(algodClient, txId, 4);
+    //Get the completed Transaction
+    console.log("Transaction " + txId + " confirmed in round " + confirmedTxn["confirmed-round"]);
+    var string = new TextDecoder().decode(confirmedTxn.txn.txn.note);
+    console.log("Note field: ", string);
+    accountInfo = await algodClient.accountInformation(aliceAccount.addr).do();
+    console.log("Transaction Amount: %d microAlgos", confirmedTxn.txn.txn.amt);        
+    console.log("Transaction Fee: %d microAlgos", confirmedTxn.txn.txn.fee);
+    let closeoutamt = startingAmount - confirmedTxn.txn.txn.amt - confirmedTxn.txn.txn.fee;     
+    console.log("Close To Amount: %d microAlgos", closeoutamt);
+    console.log("Account balance: %d microAlgos", accountInfo.amount);
     }
     catch (err) {
         console.log("err", err);

@@ -25,9 +25,7 @@ class GettingStarted{
             System.out.println("My Address: " + myAccount1.getAddress());
             System.out.println("My Passphrase: " + myAccount1.toMnemonic());
   
-            System.out.println("Navigate to this link:  https://dispenser.testnet.aws.algodev.network/");            
-            System.out.println("Copy TestNet Account Address to Dispense Funds to: "); 
-            System.out.println(myAccount1.getAddress().toString()); 
+            System.out.println("Navigate to this link and dispense:  https://dispenser.testnet.aws.algodev.network?account=" + myAccount1.getAddress());            
             System.out.println("PRESS ENTER KEY TO CONTINUE...");     
             scan.nextLine();
             return myAccount1;
@@ -141,6 +139,7 @@ class GettingStarted{
                 .amount(1000000) // 1 algo = 1000000 microalgos
                 .receiver(new Address(RECEIVER))
                 .suggestedParams(params)
+                .closeRemainderTo(RECEIVER) 
                 .build();
            
             // Sign the transaction

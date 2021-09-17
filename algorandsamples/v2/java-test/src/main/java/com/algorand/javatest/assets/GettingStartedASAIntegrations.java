@@ -173,12 +173,12 @@ public class GettingStartedASAIntegrations {
 
         if (client == null)
             this.client = connectToNetwork();
-        printBalance(bob);
+
         final String  RECEIVER = bob.getAddress().toString();
         try {
             // Construct the transaction
             System.out.println(String.format("Bob's account balance before transaction:"));
-
+            printBalance(bob);
             String SENDER = alice.getAddress().toString();            
 
             Response < TransactionParametersResponse > resp = client.TransactionParams().execute();

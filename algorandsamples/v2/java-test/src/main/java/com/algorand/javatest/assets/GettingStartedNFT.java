@@ -153,8 +153,17 @@ public class GettingStartedNFT {
         }
         throw new Exception("Transaction not confirmed after " + timeout + " rounds!");
     }
-
-    public Long createNFTAsset(Account myAccount) throws Exception {
+    private String printBalance(com.algorand.algosdk.account.Account myAccount) throws Exception {
+        String myAddress = myAccount.getAddress().toString();
+        Response < com.algorand.algosdk.v2.client.model.Account > respAcct = client.AccountInformation(myAccount.getAddress()).execute();
+        if (!respAcct.isSuccessful()) {
+            throw new Exception(respAcct.message());
+        }
+        com.algorand.algosdk.v2.client.model.Account accountInfo = respAcct.body();
+        System.out.println(String.format("Account Balance: %d microAlgos", accountInfo.amount));
+        return myAddress;
+    } 
+    public Long createNFTAsset(Account aliceAccount) throws Exception {
         if (client == null)
             this.client = connectToNetwork();
 
@@ -203,10 +212,10 @@ public class GettingStartedNFT {
         // }
         // };'''
         String assetMetadataHash = "16efaa3924a6fd9d3a4824799a4ac65d";
-        Address manager = myAccount.getAddress();
-        Address reserve = myAccount.getAddress();
-        Address freeze = myAccount.getAddress();
-        Address clawback = myAccount.getAddress();
+        Address manager = aliceAccount.getAddress();
+        Address reserve = aliceAccount.getAddress();
+        Address freeze = aliceAccount.getAddress();
+        Address clawback = aliceAccount.getAddress();
         //
         // For non-fractional NFT ASA simply set the totalissuance to 1 and decimals to
         // 0.
@@ -242,13 +251,13 @@ public class GettingStartedNFT {
         // decimals and assetTotal
         Integer decimals = 0;
 
-        Transaction tx = Transaction.AssetCreateTransactionBuilder().sender(myAccount.getAddress().toString())
+        Transaction tx = Transaction.AssetCreateTransactionBuilder().sender(aliceAccount.getAddress().toString())
                 .assetTotal(assetTotal).assetDecimals(decimals).assetUnitName(unitName).assetName(assetName).url(url)
                 .metadataHashUTF8(assetMetadataHash).manager(manager).reserve(reserve).freeze(freeze)
                 .defaultFrozen(defaultFrozen).clawback(clawback).suggestedParams(params).build();
 
         // Sign the Transaction with creator account
-        SignedTransaction signedTxn = myAccount.signTransaction(tx);
+        SignedTransaction signedTxn = aliceAccount.signTransaction(tx);
         Long assetID = null;
         try {
             // Submit the transaction to the network
@@ -268,8 +277,8 @@ public class GettingStartedNFT {
 
             assetID = pTrx.assetIndex;
             System.out.println("AssetID = " + assetID);
-            printCreatedAsset(myAccount, assetID);
-            printAssetHolding(myAccount, assetID);
+            printCreatedAsset(aliceAccount, assetID);
+            printAssetHolding(aliceAccount, assetID);
             return assetID;
         } catch (Exception e) {
             e.printStackTrace();
@@ -278,7 +287,7 @@ public class GettingStartedNFT {
 
     }
 
-    public void destroyNFTAsset(Account myAccount, Long myAssetID) throws Exception {
+    public void destroyNFTAsset(Account aliceAccount, Long myAssetID) throws Exception {
         if (client == null)
             this.client = connectToNetwork();
 
@@ -301,10 +310,10 @@ public class GettingStartedNFT {
         // set destroy asset specific parameters
         // The manager must sign and submit the transaction
         // asset close to
-        Transaction tx = Transaction.AssetDestroyTransactionBuilder().sender(myAccount.getAddress())
+        Transaction tx = Transaction.AssetDestroyTransactionBuilder().sender(aliceAccount.getAddress())
                 .assetIndex(myAssetID).suggestedParams(params).build();
         // The transaction must be signed by the manager account
-        SignedTransaction signedTxn = myAccount.signTransaction(tx);
+        SignedTransaction signedTxn = aliceAccount.signTransaction(tx);
         // send the transaction to the network
         try {
             // Submit the transaction to the network
@@ -324,14 +333,14 @@ public class GettingStartedNFT {
             // We list the account information for acct1
             // and check that the asset is no longer exist
             System.out.println("Transaction " + id + " confirmed in round " + pTrx.confirmedRound);
-            System.out.println("Account = " + myAccount.getAddress().toString());
+            System.out.println("Account = " + aliceAccount.getAddress().toString());
             System.out.println("AssetID destroyed  = " + myAssetID.toString());
             // System.out.println("Closing Amount = " + pTrx.closingAmount.toString());
 
             // Read the transaction
             // JSONObject jsonObj2 = new JSONObject(pTrx.toString());
             // System.out.println("Transaction information : " + jsonObj2.toString(2));
-            String accountInfo = client.AccountInformation(myAccount.getAddress()).execute().toString();
+            String accountInfo = client.AccountInformation(aliceAccount.getAddress()).execute().toString();
             JSONObject jsonObj2 = new JSONObject(accountInfo.toString());
             System.out.println("Account information (with assets destroyed) : " + jsonObj2.toString(2));
 
@@ -341,11 +350,77 @@ public class GettingStartedNFT {
         }
 
     }
+    // send funds back to dispenser
+    public void closeoutAccount(Account myAccount) throws Exception {
+
+        if (client == null)
+            this.client = connectToNetwork();
+
+        printBalance(myAccount);
+
+        try {
+            // Construct the transaction
+            final String RECEIVER = "HZ57J3K46JIJXILONBBZOHX6BKPXEM2VVXNRFSUED6DKFD5ZD24PMJ3MVA";
+            String note = "Hello World";
+            Response < TransactionParametersResponse > resp = client.TransactionParams().execute();
+            if (!resp.isSuccessful()) {
+                throw new Exception(resp.message());
+            }
+            TransactionParametersResponse params = resp.body();
+            if (params == null) {
+                throw new Exception("Params retrieval error");
+            }
+            JSONObject jsonObj = new JSONObject(params.toString());
+            System.out.println("Algorand suggested parameters: " + jsonObj.toString(2));
+            Transaction txn = Transaction.PaymentTransactionBuilder()
+                .sender(myAccount.getAddress().toString())
+                .note(note.getBytes())
+                .amount(1000000) // 1 algo = 1000000 microalgos
+                .receiver(new Address(RECEIVER))
+                .suggestedParams(params)
+                .closeRemainderTo(RECEIVER) 
+                .build();
+           
+            // Sign the transaction
+            SignedTransaction signedTxn = myAccount.signTransaction(txn);
+            System.out.println("Signed transaction with txid: " + signedTxn.transactionID);
+
+            // Submit the transaction to the network
+            String[] headers = {"Content-Type"};
+            String[] values = {"application/x-binary"};
+            // Submit the transaction to the network
+            byte[] encodedTxBytes = Encoder.encodeToMsgPack(signedTxn);
+            Response < PostTransactionsResponse > rawtxresponse = client.RawTransaction().rawtxn(encodedTxBytes).execute(headers, values);
+            if (!rawtxresponse.isSuccessful()) {
+                throw new Exception(rawtxresponse.message());
+            }
+            String id = rawtxresponse.body().txId;
+
+            // Wait for transaction confirmation
+            PendingTransactionResponse pTrx = waitForConfirmation(client, id, 4);
+
+            System.out.println("Transaction " + id + " confirmed in round " + pTrx.confirmedRound);
+            // Read the transaction
+            JSONObject jsonObj2 = new JSONObject(pTrx.toString());
+            System.out.println("Transaction information (with notes): " + jsonObj2.toString(2));
+            System.out.println("Decoded note: " + new String(pTrx.txn.tx.note));
+            System.out.println("Amount: " + new String(pTrx.txn.tx.amount.toString())); 
+            System.out.println("Fee: " + new String(pTrx.txn.tx.fee.toString())); 
+            if (pTrx.closingAmount != null){
+             System.out.println("Closing Amount: " + new String(pTrx.closingAmount.toString()));                 
+            }          
+            printBalance(myAccount);
+
+        } catch (Exception e) {
+            System.err.println("Exception when calling algod#transactionInformation: " + e.getMessage());
+        }
+    }
 
     public static void main(String args[]) throws Exception {
         GettingStartedNFT t = new GettingStartedNFT();
-        Account myAccount1 = t.createAccount();
-        Long assetID = t.createNFTAsset(myAccount1);
-        t.destroyNFTAsset(myAccount1, assetID);
+        Account aliceAccount = t.createAccount();
+        Long assetID = t.createNFTAsset(aliceAccount);
+        t.destroyNFTAsset(aliceAccount, assetID);
+        t.closeoutAccount(aliceAccount);
     }
 }
