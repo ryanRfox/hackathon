@@ -460,7 +460,7 @@ public class GettingStartedASAIntegrations {
             return;
         }           
     }
-    // transfer back and closeout asset
+    // transfer back from Bob to Alice and closeout asset
     public void closeoutAssetHoldings(Account bob, Account alice, Long assetID) throws Exception {
         // TRANSFER ASSET
         // Transfer the Asset:
