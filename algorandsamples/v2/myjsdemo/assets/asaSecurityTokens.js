@@ -3,6 +3,7 @@ const crypto = require('crypto');
 const fs = require('fs');
 // const fs = require('fs/promises');
 // for JavaScript SDK doc see: https://algorand.github.io/js-algorand-sdk/
+// see ASA param conventions here: https://github.com/algorandfoundation/ARCs/blob/main/ARCs/arc-0003.md
 const keypress = async () => {
     process.stdin.setRawMode(true)
     return new Promise(resolve => process.stdin.once('data', () => {
@@ -81,31 +82,7 @@ async function createAsset(algodClient, alice) {
     // see ASA metadata conventions here: https://github.com/algorandfoundation/ARCs/blob/main/ARCs/arc-0003.md
 
 
-    // const metadataJSON = {
-    //     "name": "ALICECOI",
-    //     "description": "Alice's Artwork Coins",
-    //     "image": "https:\/\/s3.amazonaws.com\/your-bucket\/images\/MyPicture.png",
-    //     "image_integrity": "sha256-47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=",
-    //     "properties": {
-    //         "simple_property": "Alice's first artwork",
-    //         "rich_property": {
-    //             "name": "AliceCoi",
-    //             "value": "001",
-    //             "display_value": "001",
-    //             "class": "emphasis",
-    //             "css": {
-    //                 "color": "#ffffff",
-    //                 "font-weight": "bold",
-    //                 "text-decoration": "underline"
-    //             }
-    //         },
-    //         "array_property": {
-    //             "name": "Artwork Coins",
-    //             "value": [1, 2, 3, 4],
-    //             "class": "emphasis"
-    //         }
-    //     }
-    // };
+    // const metadataJSON = 
 
     // The following parameters are the only ones
     // that can be changed, and they have to be changed
@@ -115,31 +92,37 @@ async function createAsset(algodClient, alice) {
     const managerAddr = alice.addr;
     // Specified address is considered the asset reserve
     // (it has no special privileges, this is only informational)
-    const reserveAddr = alice.addr; 
+    const reserveAddr = alice.addr;
     // Specified address can freeze or unfreeze user asset holdings   
     const freezeAddr = alice.addr;
     // Specified address can revoke user asset holdings and send 
     // them to other addresses    
     const clawbackAddr = alice.addr;
-    
-    // Use actual total  > 1 to create a Fungible Token
+
+    // Use actual asset total  > 1 to create a Fungible Token
     // example 1:(fungible Tokens)
-    // totalIssuance = 10, decimals = 0, result is 10 total actual 
+    // totalIssuance = 10, decimals = 0, result is 10 actual asset total
     // example 2: (fractional NFT, each is 0.1)
-    // totalIssuance = 10, decimals = 1, result is 1.0 total actual
+    // totalIssuance = 10, decimals = 1, result is 1.0 actual asset total
     // example 3: (NFT)
-    // totalIssuance = 1, decimals = 0, result is 1 total actual 
+    // totalIssuance = 1, decimals = 0, result is 1 actual asset total 
+
     // integer number of decimals for asset unit calculation
-    const decimals = 0; 
+    const decimals = 0;
     const total = 999; // how many of this asset there will be
 
     // temp fix for replit    
     //const metadata2 = "16efaa3924a6fd9d3a4824799a4ac65d";
-    const fullPath =  __dirname + '/aliceAssetMetaData.json'; 
+    const fullPath = __dirname + '/FT/metadata.json';
     const metadatafile = (await fs.readFileSync(fullPath)).toString();
     const hash = crypto.createHash('sha256');
     hash.update(metadatafile);
-    const metadata = new Uint8Array(hash.digest());
+
+    // replit error  - work around
+    const metadata = "16efaa3924a6fd9d3a4824799a4ac65d";
+    // replit error  - the following only runs in debug mode in replit, but use this in your code
+    // const metadata = new Uint8Array(hash.digest()); // use this in your code
+  
     // signing and sending "txn" allows "addr" to create an asset 
     const txn = algosdk.makeAssetCreateTxnWithSuggestedParamsFromObject({
         from: alice.addr,
@@ -154,7 +137,8 @@ async function createAsset(algodClient, alice) {
         manager: managerAddr,
         clawback: clawbackAddr,
         reserve: reserveAddr,
-        suggestedParams: params,});
+        suggestedParams: params,
+    });
 
     const rawSignedTxn = txn.signTxn(alice.sk);
     const tx = (await algodClient.sendRawTransaction(rawSignedTxn).do());
@@ -171,11 +155,11 @@ async function createAsset(algodClient, alice) {
     await printAssetHolding(algodClient, alice.addr, assetID);
     console.log("You can verify the metadata-hash above in the asset creation details");
     console.log("Using terminal the Metadata hash should appear as identical to the output of");
-    console.log("cat aliceAssetMetaData.json | openssl dgst -sha256 -binary | openssl base64 -A");
-    console.log("That is: YV/SWW7Hjy/RknglGIN2ahGJ9QdCis3LJXwLVOi8RCo=");
+    console.log("cat metadata.json | openssl dgst -sha256 -binary | openssl base64 -A");
+    // console.log("That is: V6XCVkh97N3ym+eEZCSfWFyON3bT1PVHdCh6LwVvWPY=");
 
     return { assetID };
- 
+
     // Sample Output
     // ==> CREATE ASSET
     // Alice account balance: 10000000 microAlgos
@@ -227,12 +211,13 @@ async function transferAlgosToBob(algodClient, bob, alice) {
     const sender = alice.addr;
     const closeToReaminder = undefined;
     const txn = algosdk.makePaymentTxnWithSuggestedParamsFromObject({
-        from: sender, 
+        from: sender,
         to: receiver,
-        amount, 
-        closeToReaminder, 
-        note, 
-        suggestedParams: params});
+        amount,
+        closeToReaminder,
+        note,
+        suggestedParams: params
+    });
 
     // Sign the transaction
     const rawSignedTxn = txn.signTxn(alice.sk);
@@ -291,14 +276,15 @@ async function optIn(algodClient, bob, assetID) {
     const note = undefined; // arbitrary data to be stored in the transaction; here, none is stored
     // signing and sending "txn" allows sender to begin accepting asset specified by creator and index
     const opttxn = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
-        from: sender, 
-        to: recipient, 
-        closeRemainderTo, 
+        from: sender,
+        to: recipient,
+        closeRemainderTo,
         revocationTarget,
-        amount, 
-        note, 
-        assetIndex: assetID, 
-        suggestedParams: params});
+        amount,
+        note,
+        assetIndex: assetID,
+        suggestedParams: params
+    });
     // Must be signed by the account wishing to opt in to the asset    
     const rawSignedTxn = opttxn.signTxn(bob.sk);
     const tx = (await algodClient.sendRawTransaction(rawSignedTxn).do());
@@ -321,7 +307,7 @@ async function optIn(algodClient, bob, assetID) {
     //   "is-frozen": false
     // }
 }
-async function transferAssets(algodClient, alice, bob, assetID) {
+async function transferAsset(algodClient, alice, bob, assetID) {
     console.log("");
     console.log("==> TRANSFER ASSETS FROM ALICE TO BOB");
     // Now that Bob can receive the new tokens 
@@ -335,19 +321,20 @@ async function transferAssets(algodClient, alice, bob, assetID) {
     const recipient = bob.addr;
     const revocationTarget = undefined;
     const closeRemainderTo = undefined;
-    //Amount of the asset to transfer
     const amount = 100;
+    //Amount of the asset to transfer
+    // const amount = amountpassed;
     const note = undefined; // arbitrary data to be stored in the transaction; here, none is stored
     // signing and sending "txn" will send "amount" assets from "sender" to "recipient"
     const xtxn = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
-        from: sender, 
-        to: recipient, 
-        closeRemainderTo, 
+        from: sender,
+        to: recipient,
+        closeRemainderTo,
         revocationTarget,
-        amount, 
-        note, 
-        assetIndex: assetID, 
-        suggestedParams : params 
+        amount,
+        note,
+        assetIndex: assetID,
+        suggestedParams: params
     });
     // Must be signed by the account sending the asset account
     const rawSignedTxn = xtxn.signTxn(alice.sk);
@@ -381,30 +368,31 @@ async function transferAssets(algodClient, alice, bob, assetID) {
     //   "is-frozen": false
     // }
 }
-async function transferAssetsBack(algodClient, bob, alice, assetID) {
-    console.log("");
-    console.log("==> TRANSFER ASSETS BACK FROM BOB TO ALICE");
+// ATTEMP TO TRANSACT ASSET FROM FROZEN ACCOUNT
+async function transferAssetBack(algodClient, bob, alice, assetID, amount) {
+    // ATTEMP TO TRANSFER ASSETS BACK TO ALICE FROM BOB
+    // THIS SHOULD FAIL for Amount > 0
+
+
     const params = await algodClient.getTransactionParams().do();
     //comment out the next two lines to use suggested fee
     // params.fee = 1000;
     // params.flatFee = true;
     const sender = bob.addr;
     const recipient = alice.addr;
-    const revocationTarget = undefined;
     const closeRemainderTo = alice.addr;
     //Amount of the asset to transfer
-    const amount = 100;
+
     const note = undefined; // arbitrary data to be stored in the transaction; here, none is stored
 
     // signing and sending "txn" will send "amount" assets from "sender" to "recipient"
     const xtxn = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
-        from: sender, 
-        to: recipient, 
-        closeRemainderTo, 
-        revocationTarget,
-        amount, 
-        note, 
-        assetIndex: assetID, 
+        from: sender,
+        to: recipient,
+        closeRemainderTo,
+        amount,
+        note,
+        assetIndex: assetID,
         suggestedParams: params
     });
     // Must be signed by the account sending the asset  
@@ -415,26 +403,152 @@ async function transferAssetsBack(algodClient, bob, alice, assetID) {
     const confirmedTxn = await waitForConfirmation(algodClient, tx.txId, 4);
     //Get the completed Transaction
     console.log("Transaction " + tx.txId + " confirmed in round " + confirmedTxn["confirmed-round"]);
-    // You should see 999 assets in Alice' account
+    // You should transaction failed
     console.log("Alice Account = " + alice.addr);
     await printAssetHolding(algodClient, alice.addr, assetID);
-    // You should now see the 0 assets listed in Bob's account information
+    // You should now see the same assets listed in Bob's account information
     console.log("Bob Account = " + bob.addr);
     await printAssetHolding(algodClient, bob.addr, assetID);
     return;
     // Sample Output
-    // ==> TRANSFER ASSETS BACK FROM BOB TO ALICE
-    // Transaction LB3BMQTXKCSDXKSQ5JPUGANKLEI3KLGAGAMFBPXUXQFXCAHBCR6Q confirmed in round 16833533
-    // Alice Account = RA6RAUNDQGHRWTCR5YRL2YJMIXTHWD5S3ZYHVBGSNA76AVBAYELSNRVKEI
-    // assetholdinginfo = {
-    //   "amount": 999,
-    //   "asset-id": 28291127,
-    //   "creator": "RA6RAUNDQGHRWTCR5YRL2YJMIXTHWD5S3ZYHVBGSNA76AVBAYELSNRVKEI",
-    //   "is-frozen": false
-    // }
-    // Bob Account = YC3UYV4JLHD344OC3G7JK37DRVSE7X7U2NOZVWSQNVKNEGV4M3KFA7WZ44
-    
+
+
 }
+
+
+
+async function freezeAsset(algodClient, alice, bob, assetID) {
+    // Freeze Asset:
+    // The asset was created and configured to allow freezing an account
+    // If the freeze address was set "", it will no longer be possible to do this.
+    // In this example we will now freeze Bob's account from transacting with the 
+    // The newly created asset. 
+    // The freeze transaction is sent from the freeze account manager
+    // Which in this example is alice 
+
+    console.log("");
+    console.log("==> FREEZE BOB'S ASSET ");
+    const params = await algodClient.getTransactionParams().do();
+    //comment out the next two lines to use suggested fee
+    // params.fee = 1000;
+    // params.flatFee = true;
+    const sender = alice.addr;
+    freezeTarget = bob.addr;
+    freezeState = true;
+    //Amount of the asset to transfer
+    const amount = 100;
+    const note = undefined; // arbitrary data to be stored in the transaction; here, none is stored
+    const xtxn = algosdk.makeAssetFreezeTxnWithSuggestedParamsFromObject({
+        from: sender,
+        note,
+        assetIndex: assetID,
+        freezeTarget,
+        freezeState,
+        suggestedParams: params
+    });
+
+    // Must be signed by the account sending the asset  
+    const rawSignedTxn = xtxn.signTxn(alice.sk);
+    const tx = (await algodClient.sendRawTransaction(rawSignedTxn).do());
+
+    // Wait for confirmation
+    const confirmedTxn = await waitForConfirmation(algodClient, tx.txId, 4);
+    //Get the completed Transaction
+    console.log("Transaction " + tx.txId + " confirmed in round " + confirmedTxn["confirmed-round"]);
+    // You should now see Bob's accountholdings freeze status set to true 
+    console.log("Bob Account = " + bob.addr);
+    await printAssetHolding(algodClient, bob.addr, assetID);
+    return;
+    // Sample Output
+    //     ==> FREEZE BOB'S ASSET 
+    // Transaction ACXLW3YLYE77J5MA6J3B4CMPSO4Y5C2IPMVJP5BXLVIU4GK5SRZQ confirmed in round 16920162
+    // Bob Account = LOURUYECAFXSFFJFZJ4ZPHWPJRSQFZJFSJMDH2XXR3ZG4W6IUCXW5IIE5Y
+    // assetholdinginfo = {
+    //   "amount": 100,
+    //   "asset-id": 29321587,
+    //   "creator": "O7Y4Q5UDRYK277DGNHRSPAKVZXIV2NHP7T777IP53YGFD3UNWJ4XTRRGXY",
+    //   "is-frozen": true
+    // }
+}
+
+
+async function revokeAsset(algodClient, alice, bob, assetID) {
+    console.log("");
+    console.log("==> REVOKE BOB'S ASSET ");
+    // console.log("==> REKEY BOB TO ALICE ACCOUNT, SO SHE CAN CLOSE ASSETS OUT");
+    // Revoke an Asset:
+    // The asset was also created with the ability for it to be revoked by 
+    // the clawbackaddress. If the asset was created or configured by the manager
+    // to not allow this by setting the clawbackaddress to "" then this would 
+    // not be possible.
+
+    // We will now clawback the 100 assets from Bob. Alice is the clawback 
+    // account(sender) and must sign the transaction.
+    // The recipient is Alice.
+    // The revocation target is Bob.
+    const sender = alice.addr;
+    const recipient = alice.addr;
+    const revocationTarget = bob.addr;
+    const note = undefined;
+    const amount = 100;
+   // const reKeyTo = alice.addr;    
+    const reKeyTo = undefined;
+    const closeRemainderTo = undefined;
+    // ALGORAND_ZERO_ADDRESS_STRING
+
+    // First update changing transaction parameters
+    // We will account for changing transaction parameters
+    // before every transaction in this example
+    const params = await algodClient.getTransactionParams().do();
+    //comment out the next two lines to use suggested fee
+    // params.fee = 1000;
+    // params.flatFee = true;
+
+    // signing and sending "txn" will send "amount" assets from "revocationTarget" to "recipient",
+    // if and only if sender == clawback manager for this asset
+
+    const rtxn = algosdk.makeAssetTransferTxnWithSuggestedParams(
+        sender,
+        recipient,
+        closeRemainderTo,
+        revocationTarget,
+        amount,
+        note,
+        assetID,
+        params,
+        reKeyTo
+    );
+    // Must be signed by the account that is the clawback address    
+    rawSignedTxn = rtxn.signTxn(alice.sk);
+    const tx = (await algodClient.sendRawTransaction(rawSignedTxn).do());
+    // wait for transaction to be confirmed
+    const confirmedTxn = await waitForConfirmation(algodClient, tx.txId, 4);
+    //Get the completed Transaction
+    console.log("Transaction " + tx.txId + " confirmed in round " + confirmedTxn["confirmed-round"]);
+
+
+    // You should now see 0 assets listed in the account information
+    // for Bob's account
+    console.log("Asset ID: " + assetID);
+    // You should now see 0 assets listed in the account information
+    // for the third account
+    console.log("Bob's address = " + bob.addr);
+    await printAssetHolding(algodClient, bob.addr, assetID);
+
+    //output
+    // ==> REVOKE BOB'S ASSET 
+    // Transaction JRYPII5FKXS5M5PBSJ5HZMDROGMIEUTMTMY6W7PRKDY4DTFSWGHA confirmed in round 16920166
+    // Asset ID: 29321587
+    // Bob's address = LOURUYECAFXSFFJFZJ4ZPHWPJRSQFZJFSJMDH2XXR3ZG4W6IUCXW5IIE5Y
+    // assetholdinginfo = {
+    //   "amount": 0,
+    //   "asset-id": 29321587,
+    //   "creator": "O7Y4Q5UDRYK277DGNHRSPAKVZXIV2NHP7T777IP53YGFD3UNWJ4XTRRGXY",
+    //   "is-frozen": true
+    // }
+}
+
+
 // Destroy Asset:
 async function destroyAsset(algodClient, alice, assetID, bob) {
     console.log("");
@@ -451,9 +565,9 @@ async function destroyAsset(algodClient, alice, assetID, bob) {
     // if all assets are held by the asset creator,
     // the asset creator can sign and issue "txn" to remove the asset from the ledger. 
     const txn = algosdk.makeAssetDestroyTxnWithSuggestedParamsFromObject({
-        from: addr, 
-        note: undefined, 
-        assetIndex: assetID, 
+        from: addr,
+        note: undefined,
+        assetIndex: assetID,
         suggestedParams: params
     });
     // The transaction must be signed by the manager which 
@@ -488,6 +602,11 @@ async function destroyAsset(algodClient, alice, assetID, bob) {
     // Bob = YC3UYV4JLHD344OC3G7JK37DRVSE7X7U2NOZVWSQNVKNEGV4M3KFA7WZ44  
 }
 async function closeoutBobAlgos(algodClient, bob, alice) {
+
+    // first close out Bob's Asset
+    // await transferAsset(algodClient, alice, bob, assetID, 0, alice.addr);
+
+    // then close out Bob's Account
     console.log("");
     console.log("==> CLOSE OUT BOB'S ALGOS TO DISPENSER");
     let accountInfo = await algodClient.accountInformation(bob.addr).do();
@@ -501,16 +620,18 @@ async function closeoutBobAlgos(algodClient, bob, alice) {
     const receiver = bob.addr;
     const amount = 0;
     const sender = bob.addr;
+
     // add remaining funds go back to dispenser
     // closeRemainderTo will remove the assetholding from the account
     const closeRemainderTo = DISPENSERACCOUNT;
     const txn = algosdk.makePaymentTxnWithSuggestedParamsFromObject({
-        from: sender, 
+        from: sender,
         to: receiver,
-        amount, 
-        closeRemainderTo, 
-        note: undefined, 
-        suggestedParams: params});
+        amount,
+        closeRemainderTo,
+        note: undefined,
+        suggestedParams: params
+    });
     // Sign the transaction
     const rawSignedTxn = txn.signTxn(bob.sk);
     // Submit the transaction
@@ -564,12 +685,13 @@ async function closeoutAliceAlgos(algodClient, alice) {
     // closeToRemainder will remove the assetholding from the account
     const closeRemainderTo = DISPENSERACCOUNT;
     const txn = algosdk.makePaymentTxnWithSuggestedParamsFromObject({
-        from: sender, 
+        from: sender,
         to: receiver,
-        amount, 
-        closeRemainderTo, 
-        note: undefined, 
-        suggestedParams: params});
+        amount,
+        closeRemainderTo,
+        note: undefined,
+        suggestedParams: params
+    });
     // Sign the transaction
     const rawSignedTxn = txn.signTxn(alice.sk);
     // Submit the transaction
@@ -584,7 +706,7 @@ async function closeoutAliceAlgos(algodClient, alice) {
     let txAmount = confirmedTxn.txn.txn.amt;
     if (confirmedTxn.txn.txn.amt == undefined) {
         console.log("Transaction Amount: %d microAlgos", 0);
-        txAmount=0;
+        txAmount = 0;
     }
     else {
         console.log("Transaction Amount: %d microAlgos", confirmedTxn.txn.txn.amt);
@@ -593,7 +715,7 @@ async function closeoutAliceAlgos(algodClient, alice) {
     console.log("Transaction Fee: %d microAlgos", confirmedTxn.txn.txn.fee);
     const closeoutamt = startingAmount - txAmount - confirmedTxn.txn.txn.fee;
     console.log("Close To Amount: %d microAlgos", closeoutamt);
-    console.log("Bobs Account balance: %d microAlgos", accountInfo.amount);
+    console.log("Alices Account balance: %d microAlgos", accountInfo.amount);
     return;
     // Sample Output
     // ==> CLOSE OUT ALICE'S ALGOS TO DISPENSER
@@ -601,7 +723,7 @@ async function closeoutAliceAlgos(algodClient, alice) {
     // Transaction IC6IQVUOFLTTXNWZWD4F6L5CZXOFBTD3EY2QJUY5MHUOQSAX3CEA confirmed in round 16833543
     // Transaction Amount: 0 microAlgos
     // Transaction Fee: 1000 microAlgos
-    // Bobs Account balance: 0 microAlgos
+    // Alice's Account balance: 0 microAlgos
 }
 
 /**
@@ -712,9 +834,26 @@ async function gettingStartedASAInteractions() {
         // BOB OPTS IN 
         await optIn(algodClient, bob, assetID);
         // TRANSFER ASSETS FROM ALICE TO BOB
-        await transferAssets(algodClient, alice, bob, assetID);
-        // TRANSFER ASSETS BACK TO ALICE FROM BOB
-        await transferAssetsBack(algodClient, bob, alice, assetID);
+        await transferAsset(algodClient, alice, bob, assetID, 100, undefined);
+        // FREEZE BOB'S TOKENS
+        await freezeAsset(algodClient, alice, bob, assetID);
+        // ATTEMP TO TRANSFER ASSETS BACK TO ALICE FROM BOB
+        // THIS SHOULD FAIL
+        try {
+            console.log("");
+            console.log("==> ATTEMP TO TRANSFER ASSETS BACK TO ALICE FROM BOB");
+            console.log("==> THIS SHOULD FAIL AS BOB'S ACCOUNT IS FROZEN");
+            await transferAssetBack(algodClient, bob, alice, assetID, 100);
+        }
+        catch (err) {
+            console.log("");
+            console.log("==> TRANSFER NOT ALLOWED WHEN FROZEN");
+        }
+        // CLAWBACK BOB's TOKENS (REVOKE) 
+        await revokeAsset(algodClient, alice, bob, assetID);
+        console.log("");
+        console.log("==> BOB CLOSEOUT ASSETS TO ALICE");
+        await transferAssetBack(algodClient, bob, alice, assetID, 0);
         // DESTROY ASSET
         await destroyAsset(algodClient, alice, assetID, bob);
         // CLOSEOUT ALGOS - Bob closes out Algos to dispenser
@@ -731,15 +870,5 @@ async function gettingStartedASAInteractions() {
 };
 
 gettingStartedASAInteractions();
-
-
-
-
-
-
-
-
-
-
 
 

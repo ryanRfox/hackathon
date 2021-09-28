@@ -18,13 +18,19 @@ let indexerClient = new algosdk.Indexer(indexer_token, indexer_server, indexer_p
 
 (async () => {  
     //let names = "Russell Anthony";
-    let names = '{"firstName":"John"';
+    // let names = '{"firstName":"John"';
     const enc = new TextEncoder();
-    const note = enc.encode(names);
-    const s = Buffer.from(note).toString("base64");
+    let note = enc.encode("Hello");
+  //  let note = enc.encode(names);
+ //   let note = enc.encode('[{"_id":"60c9dc007b9206a8a641f2e8"]}]');   
+    let s = Buffer.from(note).toString("base64");
     let transactionInfo = await indexerClient.searchForTransactions()
-        .minRound(10894697)
+        .minRound(14838981)
         .notePrefix(s).do();
+    // const s = Buffer.from(note).toString("base64");
+    // let transactionInfo = await indexerClient.searchForTransactions()
+    //     .minRound(14037730)
+    //     .notePrefix(s).do();
     console.log("Information for Transaction search: " + JSON.stringify(transactionInfo, undefined, 2));
     // create a buffer
     if (transactionInfo.transactions.length > 0)

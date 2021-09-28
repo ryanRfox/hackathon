@@ -13,7 +13,8 @@
             "skipFiles": [
                 "<node_internals>/**"
             ],
-            "program": "${file}"
+            "program": "${file}",
+            "console": "integratedTerminal"
         },
         {
             "type": "chrome",

@@ -1,7 +1,9 @@
 const algosdk = require('algosdk');
 const crypto = require('crypto');
-// const CryptoJS = require('crypto-js');
+const fs = require('fs');
+
 // see ASA param conventions here: https://github.com/algorandfoundation/ARCs/blob/main/ARCs/arc-0003.md
+// for JavaScript SDK doc see: https://algorand.github.io/js-algorand-sdk/
 
 const keypress = async () => {
     process.stdin.setRawMode(true)
@@ -15,6 +17,269 @@ const keypress = async () => {
 // The Algorand TestNet Dispenser is located here: 
 // https://dispenser.testnet.aws.algodev.network/
 
+const DISPENSERACCOUNT = "HZ57J3K46JIJXILONBBZOHX6BKPXEM2VVXNRFSUED6DKFD5ZD24PMJ3MVA";
+async function createAsset(algodClient, alice) {
+    console.log("");
+    console.log("==> CREATE ASSET");
+    //Check account balance    
+    const accountInfo = await algodClient.accountInformation(alice.addr).do();
+    const startingAmount = accountInfo.amount;
+    console.log("Alice account balance: %d microAlgos", startingAmount);
+
+    // Construct the transaction
+    const params = await algodClient.getTransactionParams().do();
+    // comment out the next two lines to use suggested fee
+    // params.fee = 1000;
+    // params.flatFee = true;
+    // const closeout = receiver; //closeRemainderTo
+    // WARNING! all remaining funds in the sender account above will be sent to the closeRemainderTo Account 
+    // In order to keep all remaining funds in the sender account after tx, set closeout parameter to undefined.
+    // For more info see: 
+    // https://developer.algorand.org/docs/reference/transactions/#payment-transaction
+    // Asset creation specific parameters
+    // The following parameters are asset specific
+    // Throughout the example these will be re-used. 
+
+    // Whether user accounts will need to be unfrozen before transacting    
+    const defaultFrozen = false;
+    // Used to display asset units to user    
+    const unitName = "ALICECOI";
+    // Friendly name of the asset    
+    const assetName = "Alice's Artwork Coins@arc3";
+    // Optional string pointing to a URL relating to the asset
+    const url = "https://s3.amazonaws.com/your-bucket/metadata.json";
+    // Optional hash commitment of some sort relating to the asset. 32 character length.
+    // metadata can define the unitName and assetName as well.
+    // see ASA metadata conventions here: https://github.com/algorandfoundation/ARCs/blob/main/ARCs/arc-0003.md
+
+
+    // The following parameters are the only ones
+    // that can be changed, and they have to be changed
+    // by the current manager
+    // Specified address can change reserve, freeze, clawback, and manager
+    // If they are set to undefined at creation time, you will not be able to modify these later
+    const managerAddr = alice.addr; // OPTIONAL: FOR DEMO ONLY, USED TO DESTROY ASSET WITHIN
+    // Specified address is considered the asset reserve
+    // (it has no special privileges, this is only informational)
+    const reserveAddr = undefined; 
+    // Specified address can freeze or unfreeze user asset holdings   
+    const freezeAddr = undefined;
+    // Specified address can revoke user asset holdings and send 
+    // them to other addresses    
+    const clawbackAddr = undefined;
+    
+    // Use actual total  > 1 to create a Fungible Token
+    // example 1:(fungible Tokens)
+    // totalIssuance = 10, decimals = 0, result is 10 total actual 
+    // example 2: (fractional NFT, each is 0.1)
+    // totalIssuance = 10, decimals = 1, result is 1.0 total actual
+    // example 3: (NFT)
+    // totalIssuance = 1, decimals = 0, result is 1 total actual 
+    // integer number of decimals for asset unit calculation
+    const decimals = 0; 
+    const total = 1; // how many of this asset there will be
+
+    // temp fix for replit    
+    //const metadata2 = "16efaa3924a6fd9d3a4824799a4ac65d";
+
+    const fullPath =  __dirname + '/NFT/metadata.json'; 
+    const metadatafile = (await fs.readFileSync(fullPath)).toString();
+    const hash = crypto.createHash('sha256');
+    hash.update(metadatafile);
+
+    // replit error  - work around
+    const metadata = "16efaa3924a6fd9d3a4824799a4ac65d";
+    // replit error  - the following only runs in debug mode in replit, and use this in your code
+    // const metadata = new Uint8Array(hash.digest()); // use this in your code
+
+
+    const fullPathImage =  __dirname + '/NFT/alice-nft.png'; 
+    const metadatafileImage = (await fs.readFileSync(fullPathImage)).toString();
+    const hashImage = crypto.createHash('sha256');
+    hashImage.update(metadatafileImage);
+    const hashImageBase64 = hashImage.digest("base64");
+    const imageIntegrity = "sha256-" + hashImageBase64;
+    
+    // use this in yout metadata.json file
+    console.log("image_integrity : " + imageIntegrity);
+
+
+    // signing and sending "txn" allows "addr" to create an asset 
+    const txn = algosdk.makeAssetCreateTxnWithSuggestedParamsFromObject({
+        from: alice.addr,
+        total,
+        decimals,
+        assetName,
+        unitName,
+        assetURL: url,
+        assetMetadataHash: metadata,
+        defaultFrozen,
+        freeze: freezeAddr,
+        manager: managerAddr,
+        clawback: clawbackAddr,
+        reserve: reserveAddr,
+        suggestedParams: params,});
+
+    const rawSignedTxn = txn.signTxn(alice.sk);
+    const tx = (await algodClient.sendRawTransaction(rawSignedTxn).do());
+    let assetID = null;
+    // wait for transaction to be confirmed
+    const confirmedTxn = await waitForConfirmation(algodClient, tx.txId, 4);
+    //Get the completed Transaction
+    console.log("Transaction " + tx.txId + " confirmed in round " + confirmedTxn["confirmed-round"]);
+    const ptx = await algodClient.pendingTransactionInformation(tx.txId).do();
+    assetID = ptx["asset-index"];
+    // console.log("AssetID = " + assetID);
+
+    await printCreatedAsset(algodClient, alice.addr, assetID);
+    await printAssetHolding(algodClient, alice.addr, assetID);
+    console.log("You can verify the metadata-hash above in the asset creation details");
+    console.log("Using terminal the Metadata hash should appear as identical to the output of");
+    console.log("cat aliceAssetMetaData.json | openssl dgst -sha256 -binary | openssl base64 -A");
+    console.log("That is: Cii04FOHWE4NiXQ4s4J02we2gnJop5dOfdkBvUoGHQ8=");
+
+    return { assetID };
+ 
+    // Sample Output similar to
+    // ==> CREATE ASSET
+    // Alice account balance: 10000000 microAlgos
+    // Transaction DM2QAJQ34AHOIH2XPOXB3KDDMFYBTSDM6CGO6SCM6A6VJYF5AUZQ confirmed in round 16833515
+    // AssetID = 28291127
+    // parms = {
+    //   "clawback": "RA6RAUNDQGHRWTCR5YRL2YJMIXTHWD5S3ZYHVBGSNA76AVBAYELSNRVKEI",
+    //   "creator": "RA6RAUNDQGHRWTCR5YRL2YJMIXTHWD5S3ZYHVBGSNA76AVBAYELSNRVKEI",
+    //   "decimals": 0,
+    //   "default-frozen": false,
+    //   "freeze": "RA6RAUNDQGHRWTCR5YRL2YJMIXTHWD5S3ZYHVBGSNA76AVBAYELSNRVKEI",
+    //   "manager": "RA6RAUNDQGHRWTCR5YRL2YJMIXTHWD5S3ZYHVBGSNA76AVBAYELSNRVKEI",
+    //   "metadata-hash": "WQ4GxK4WqdklhWD9zJMfYH+Wgk+rTnqJIdW08Y7eD1U=",
+    //   "name": "Alice's Artwork Coins",
+    //   "name-b64": "QWxpY2UncyBBcnR3b3JrIENvaW5z",
+    //   "reserve": "RA6RAUNDQGHRWTCR5YRL2YJMIXTHWD5S3ZYHVBGSNA76AVBAYELSNRVKEI",
+    //   "total": 999,
+    //   "unit-name": "ALICECOI",
+    //   "unit-name-b64": "QUxJQ0VDT0k=",
+    //   "url": "http://someurl",
+    //   "url-b64": "aHR0cDovL3NvbWV1cmw="
+    // }
+    // assetholdinginfo = {
+    //   "amount": 999,
+    //   "asset-id": 28291127,
+    //   "creator": "RA6RAUNDQGHRWTCR5YRL2YJMIXTHWD5S3ZYHVBGSNA76AVBAYELSNRVKEI",
+    //   "is-frozen": false
+    // }
+}
+
+async function destroyAsset(algodClient, alice, assetID) {
+    console.log("");
+    console.log("==> DESTROY ASSET");
+    // All of the created assets should now be back in the creators
+    // Account so we can delete the asset.
+    // If this is not the case the asset deletion will fail
+    const params = await algodClient.getTransactionParams().do();
+    // Comment out the next two lines to use suggested fee
+    // params.fee = 1000;
+    // params.flatFee = true;
+    // The address for the from field must be the manager account
+    const addr = alice.addr;
+    // if all assets are held by the asset creator,
+    // the asset creator can sign and issue "txn" to remove the asset from the ledger. 
+    const txn = algosdk.makeAssetDestroyTxnWithSuggestedParamsFromObject({
+        from: addr, 
+        note: undefined, 
+        assetIndex: assetID, 
+        suggestedParams: params
+    });
+    // The transaction must be signed by the manager which 
+    // is currently set to alice
+    const rawSignedTxn = txn.signTxn(alice.sk);
+    const tx = (await algodClient.sendRawTransaction(rawSignedTxn).do());
+    // Wait for confirmation
+    const confirmedTxn = await waitForConfirmation(algodClient, tx.txId, 4);
+    //Get the completed Transaction
+    console.log("Transaction " + tx.txId + " confirmed in round " + confirmedTxn["confirmed-round"]);
+    // The account3 and account1 should no longer contain the asset as it has been destroyed
+    console.log("Asset ID: " + assetID);
+    console.log("Alice = " + alice.addr);
+    await printCreatedAsset(algodClient, alice.addr, assetID);
+    await printAssetHolding(algodClient, alice.addr, assetID);
+
+    return;
+    // Notice that although the asset was destroyed, the asset id and associated 
+    // metadata still exists in account holdings for any account that optin. 
+    // When you destroy an asset, the global parameters associated with that asset
+    // (manager addresses, name, etc.) are deleted from the creator's account.
+    // However, holdings are not deleted automatically -- users still need to 
+    // use the closeToAccount on the call makePaymentTxnWithSuggestedParams of the deleted asset.
+    // This is necessary for technical reasons because we currently can't have a single transaction touch potentially 
+    // thousands of accounts (all the holdings that would need to be deleted).
+
+    // ==> DESTROY ASSET
+    // Transaction QCE52AAX75VBSGDL36VHMNVT6LXSR5M6V5JUNSKE6BXQGLQEMLDA confirmed in round 16833536
+    // Asset ID: 28291127
+    // Alice = RA6RAUNDQGHRWTCR5YRL2YJMIXTHWD5S3ZYHVBGSNA76AVBAYELSNRVKEI
+    // Bob = YC3UYV4JLHD344OC3G7JK37DRVSE7X7U2NOZVWSQNVKNEGV4M3KFA7WZ44  
+}
+async function closeoutAliceAlgos(algodClient, alice) {
+    console.log("");
+    console.log("==> CLOSE OUT ALICE'S ALGOS TO DISPENSER");
+    let accountInfo = await algodClient.accountInformation(alice.addr).do();
+    console.log("Alice Account balance: %d microAlgos", accountInfo.amount);
+    const startingAmount = accountInfo.amount;
+    // Construct the transaction
+    const params = await algodClient.getTransactionParams().do();
+    // comment out the next two lines to use suggested fee
+    // params.fee = 1000;
+    // params.flatFee = true;
+    // For more info see: 
+    // https://developer.algorand.org/docs/reference/transactions/#payment-transaction
+    // receiver account to send to
+    const receiver = alice.addr;
+    const enc = new TextEncoder();
+    const amount = 0;
+    const sender = alice.addr;
+    // closeToRemainder will remove the assetholding from the account
+    const closeRemainderTo = DISPENSERACCOUNT;
+    const txn = algosdk.makePaymentTxnWithSuggestedParamsFromObject({
+        from: sender, 
+        to: receiver,
+        amount, 
+        closeRemainderTo, 
+        note: undefined, 
+        suggestedParams: params});
+    // Sign the transaction
+    const rawSignedTxn = txn.signTxn(alice.sk);
+    // Submit the transaction
+    const tx = (await algodClient.sendRawTransaction(rawSignedTxn).do());
+    // Wait for confirmation
+    const confirmedTxn = await waitForConfirmation(algodClient, tx.txId, 4);
+    //Get the completed Transaction
+    console.log("Transaction " + tx.txId + " confirmed in round " + confirmedTxn["confirmed-round"]);
+    // const mytxinfo = JSON.stringify(confirmedTxn.txn.txn, undefined, 2);
+    // console.log("Transaction information: %o", mytxinfo);
+    accountInfo = await algodClient.accountInformation(alice.addr).do();
+    let txAmount = confirmedTxn.txn.txn.amt;
+    if (confirmedTxn.txn.txn.amt == undefined) {
+        console.log("Transaction Amount: %d microAlgos", 0);
+        txAmount=0;
+    }
+    else {
+        console.log("Transaction Amount: %d microAlgos", confirmedTxn.txn.txn.amt);
+
+    }
+    console.log("Transaction Fee: %d microAlgos", confirmedTxn.txn.txn.fee);
+    const closeoutamt = startingAmount - txAmount - confirmedTxn.txn.txn.fee;
+    console.log("Close To Amount: %d microAlgos", closeoutamt);
+    console.log("Bobs Account balance: %d microAlgos", accountInfo.amount);
+    return;
+    // Sample Output
+    // ==> CLOSE OUT ALICE'S ALGOS TO DISPENSER
+    // Alice Account balance: 8996000 microAlgos
+    // Transaction IC6IQVUOFLTTXNWZWD4F6L5CZXOFBTD3EY2QJUY5MHUOQSAX3CEA confirmed in round 16833543
+    // Transaction Amount: 0 microAlgos
+    // Transaction Fee: 1000 microAlgos
+    // Bobs Account balance: 0 microAlgos
+}
 
 const createAccount = function () {
     try {
@@ -34,6 +299,7 @@ const createAccount = function () {
         console.log("err", err);
     }
 };
+
 
 /**
  * Wait until the transaction is confirmed or rejected, or until 'timeout'
@@ -110,22 +376,12 @@ const printAssetHolding = async function (algodClient, account, assetid) {
         }
     }
 };
-async function sha256(message) {
-    // encode as UTF-8
-    const msgBuffer = new TextEncoder().encode(message);
-    // hash the message
-    const hashBuffer = await crypto.sha256('SHA-256', msgBuffer);
-    // convert ArrayBuffer to Array
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    // convert bytes to hex string                  
-    const hashHex = hashArray.map(b => ('00' + b.toString(16)).slice(-2)).join('');
-    return hashHex;
-}
+
 
 async function createNFT() {
 
     try {
-        let aliceAccount = createAccount();
+        let alice = createAccount();
         console.log("Press any key when the account is funded");
         await keypress();
         // Connect your client
@@ -136,204 +392,15 @@ async function createNFT() {
         const algodServer = 'https://academy-algod.dev.aws.algodev.network';
         const algodPort = 443;
 
-
         let algodClient = new algosdk.Algodv2(algodToken, algodServer, algodPort);
 
-        //Check your balance
-        let accountInfo = await algodClient.accountInformation(aliceAccount.addr).do(); 
-        console.log("Account balance: %d microAlgos", accountInfo.amount);
-     
-        // Construct the transaction
-        let params = await algodClient.getTransactionParams().do();
-        // comment out the next two lines to use suggested fee
-        // params.fee = 1000;
-        // params.flatFee = true;
-
-        // let closeout = receiver; //closeRemainderTo
-        // WARNING! all remaining funds in the sender account above will be sent to the closeRemainderTo Account 
-        // In order to keep all remaning funds in the sender account after tx, set closeout parameter to undefined.
-        // For more info see: 
-        // https://developer.algorand.org/docs/reference/transactions/#payment-transaction
-
-        let note = undefined; // arbitrary data to be stored in the transaction; here, none is stored
-        // Asset creation specific parameters
-        // The following parameters are asset specific
-        let addr = aliceAccount.addr;
-        // Whether user accounts will need to be unfrozen before transacting    
-        let defaultFrozen = false;
-
-        // Used to display asset units to user    
-        let unitName = "ALICE001";
-        // Friendly name of the asset    
-        let assetName = "Alice's Artwork 001";
-        // Optional string pointing to a URL relating to the asset
-        let assetURL = "http://someurl";
-        // Optional hash commitment of some sort relating to the asset. 32 character length.
-        // todo - hash verify this metadataJSON
-
-        var metadataJSON = {
-            "name": "ALICE001",
-            "description": "Alice's Artwork Scene 1",
-            "image": "https:\/\/s3.amazonaws.com\/your-bucket\/images\/MyPicture.png",
-            "image_integrity": "sha256-47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=",
-            "properties": {
-                "simple_property": "Alice's first artwork",
-                "rich_property": {
-                    "name": "Alice",
-                    "value": "001",
-                    "display_value": "001",
-                    "class": "emphasis",
-                    "css": {
-                        "color": "#ffffff",
-                        "font-weight": "bold",
-                        "text-decoration": "underline"
-                    }
-                },
-                "array_property": {
-                    "name": "Artwork",
-                    "value": [1, 2, 3, 4],
-                    "class": "emphasis"
-                }
-            }
-        };
-        var metadataJSONString = JSON.stringify(metadataJSON);
-        let assetMetadataHash = new Uint8Array(crypto.createHmac('sha256', "key").update(metadataJSONString).digest('hex'));
-        console.log("assetMetadataHash : " + assetMetadataHash.toString());
-       
-        // The following parameters are the only ones
-        // that can be changed, and they have to be changed
-        // by the current manager
-        // Specified address can change reserve, freeze, clawback, and manager
-        let manager = aliceAccount.addr;
-        // Specified address is considered the asset reserve
-        // (it has no special privileges, this is only informational)
-        let reserve = aliceAccount.addr;
-        // Specified address can freeze or unfreeze user asset holdings 
-        let freeze = aliceAccount.addr;
-
-        // Specified address can revoke user asset holdings and send 
-        // them to other addresses    
-        let clawback = aliceAccount.addr;
-        // Use actual total  > 1 to create a Fungible Token
-
-        // example 1:(fungible Tokens)
-        // totalIssuance = 10, decimals = 0, result is 10 total actual 
-
-        // example 2: (fractional NFT, each is 0.1)
-        // totalIssuance = 10, decimals = 1, result is 1.0 total actual
-
-        // example 3: (NFT)
-        // totalIssuance = 1, decimals = 0, result is 1 total actual 
-
-        // integer number of decimals for asset unit calculation
-
-        let decimals = 0;
-        // total number of this asset available for circulation 100 units of .01 fraction each.   
-        let totalIssuance = 1;
-        // signing and sending "txn" allows "addr" to create an asset
-        let txn = algosdk.makeAssetCreateTxnWithSuggestedParams(addr, note,
-            totalIssuance, decimals, defaultFrozen, manager, reserve, freeze,
-            clawback, unitName, assetName, assetURL, assetMetadataHash, params);
-
-        let rawSignedTxn = txn.signTxn(aliceAccount.sk);
-        let tx = (await algodClient.sendRawTransaction(rawSignedTxn).do());
-        console.log("Transaction : " + tx.txId);
-        let assetID = null;
-        // wait for transaction to be confirmed
-        let confirmedTxn = await waitForConfirmation(algodClient, tx.txId, 4);
-        //Get the completed Transaction
-        console.log("Transaction " + tx.txId + " confirmed in round " + confirmedTxn["confirmed-round"]);
-
-
-        let ptx = await algodClient.pendingTransactionInformation(tx.txId).do();
-        assetID = ptx["asset-index"];
-
-        await printCreatedAsset(algodClient, aliceAccount.addr, assetID);
-        await printAssetHolding(algodClient, aliceAccount.addr, assetID);
-    // Destroy and Asset:
-    // All of the created assets should now be back in the creators
-    // Account so we can delete the asset.
-    // If this is not the case the asset deletion will fail
-
-    // First update changing transaction parameters
-    // We will account for changing transaction parameters
-    // before every transaction in this example
-
-    params = await algodClient.getTransactionParams().do();
-    //comment out the next two lines to use suggested fee
-    // params.fee = 1000;
-    // params.flatFee = true;
-
-    // The address for the from field must be the manager account
-    // Which is currently the creator aliceAccount
-    // addr = aliceAccount.addr;
-    note = undefined;
-    // if all assets are held by the asset creator,
-    // the asset creator can sign and issue "txn" to remove the asset from the ledger. 
-    let dtxn = algosdk.makeAssetDestroyTxnWithSuggestedParams(aliceAccount.addr, note, assetID, params);
-    // The transaction must be signed by the manager which 
-    // is currently set to aliceAccount
-    rawSignedTxn = dtxn.signTxn(aliceAccount.sk)
-    tx = (await algodClient.sendRawTransaction(rawSignedTxn).do());
-    // wait for transaction to be confirmed
-    confirmedTxn = await waitForConfirmation(algodClient, tx.txId, 4);
-    //Get the completed Transaction
-    console.log("Transaction " + tx.txId + " confirmed in round " + confirmedTxn["confirmed-round"]);
-
-
-
-    // The account should no longer contain the asset as it has been destroyed
-    console.log("Asset ID: " + assetID);
-    console.log("Account 1 = " + aliceAccount.addr);
-    await printCreatedAsset(algodClient, aliceAccount.addr, assetID);
-    await printAssetHolding(algodClient, aliceAccount.addr, assetID);
-    accountInfo = await algodClient.accountInformation(aliceAccount.addr).do(); 
-    let myaccount = JSON.stringify(accountInfo, undefined, 2);
-    console.log("Asset does not appear and is deleted from account: %s ", myaccount);
-    // return funds to dispenser
-    //Check your balance
-    accountInfo = await algodClient.accountInformation(aliceAccount.addr).do();
-    console.log("Account balance: %d microAlgos", accountInfo.amount);
-    let startingAmount = accountInfo.amount;
-    // Construct the transaction
-    params = await algodClient.getTransactionParams().do();
-    // comment out the next two lines to use suggested fee
-    // params.fee = 1000;
-    // params.flatFee = true;
-
-    // receiver defined as TestNet faucet address 
-    const receiver = "HZ57J3K46JIJXILONBBZOHX6BKPXEM2VVXNRFSUED6DKFD5ZD24PMJ3MVA";
-    const enc = new TextEncoder();
-    note = enc.encode("Hello World");
-    let amount = 1000000;
-    let closeout = receiver; //closeRemainderTo - return remainder to TestNet faucet
-    let sender = aliceAccount.addr;
-    txn = algosdk.makePaymentTxnWithSuggestedParams(sender, receiver, amount, closeout, note, params);
-    // WARNING! all remaining funds in the sender account above will be sent to the closeRemainderTo Account 
-    // In order to keep all remaning funds in the sender account after tx, set closeout parameter to undefined.
-    // For more info see: 
-    // https://developer.algorand.org/docs/reference/transactions/#payment-transaction
-
-    // Sign the transaction
-    let signedTxn = txn.signTxn(aliceAccount.sk);
-    let txId = txn.txID().toString();
-    console.log("Signed transaction with txID: %s", txId);
-
-    // Submit the transaction
-    await algodClient.sendRawTransaction(signedTxn).do();
-
-    // Wait for confirmation
-    confirmedTxn = await waitForConfirmation(algodClient, txId, 4);
-    //Get the completed Transaction
-    console.log("Transaction " + txId + " confirmed in round " + confirmedTxn["confirmed-round"]);
-    var string = new TextDecoder().decode(confirmedTxn.txn.txn.note);
-    console.log("Note field: ", string);
-    accountInfo = await algodClient.accountInformation(aliceAccount.addr).do();
-    console.log("Transaction Amount: %d microAlgos", confirmedTxn.txn.txn.amt);        
-    console.log("Transaction Fee: %d microAlgos", confirmedTxn.txn.txn.fee);
-    let closeoutamt = startingAmount - confirmedTxn.txn.txn.amt - confirmedTxn.txn.txn.fee;     
-    console.log("Close To Amount: %d microAlgos", closeoutamt);
-    console.log("Account balance: %d microAlgos", accountInfo.amount);
+        // CREATE ASSET
+        const { assetID } = await createAsset(algodClient, alice);
+        // DESTROY ASSET
+        await destroyAsset(algodClient, alice, assetID); 
+            // CLOSEOUT ALGOS - Alice closes out Alogs to dispenser
+        await closeoutAliceAlgos(algodClient, alice);
+        
 
     }
     catch (err) {
