@@ -354,10 +354,10 @@ public class GettingStartedASAIntegrations {
 
             // We can now list the account information for acct3
             // and see that it can accept the new asset
-            System.out.println("Account sender= " + alice.getAddress().toString());
+            System.out.println("Alice Account = " + alice.getAddress().toString());
             printAssetHolding(alice, assetID);
             printBalance(alice);
-            System.out.println("Account receiver= " + bob.getAddress().toString());
+            System.out.println("Bob Account = " + bob.getAddress().toString());
             printAssetHolding(bob, assetID);
             printBalance(bob);
         } catch (Exception e) {

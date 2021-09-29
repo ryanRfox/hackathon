@@ -13,7 +13,7 @@ import org.json.JSONObject;
 public class AccountInfo {
     public Client indexerInstance = null;
     // utility function to connect to a node
-    private Client connectToNetwork(){
+    Client connectToNetwork(){
         final String INDEXER_API_ADDR = "localhost";
         final int INDEXER_API_PORT = 8981;       
         IndexerClient indexerClient = new IndexerClient(INDEXER_API_ADDR, INDEXER_API_PORT); 
