@@ -13,74 +13,64 @@ client = algod.AlgodClient(token, url)
 
 def demo():
     # Create acct
-    addr, pk = get_accounts("Testnet")[0]
+    addr, pk = get_accounts()[0]
     print("Using {}".format(addr))
 
     # Create app
-    app_id =  41213193 
-    # app_id = create_app(addr, pk)
+    app_id = create_app(addr, pk)
     print("Created App with id: {}".format(app_id))
-    # new AVM call to get Application address
-    app_addr = logic.get_application_address(app_id)
-    print("Application Address: {}".format(app_addr))
 
     sp = client.suggested_params()
-    tx_group = assign_group_id([
-        get_fund_txn(addr, sp, app_addr, 500000),
-        get_app_call(addr, sp, app_id, ["inner-txn-demo", "itxnd", (1000).to_bytes(8,'big')]), 
-    ])
-    # rename to tx_group
-    signed_group = [txn.sign(pk) for txn in tx_group]
+    pooled_group = [
+        get_app_call(addr, sp, app_id, []), 
+    ]
 
-    # write_dryrun(signed_group, "dryrun", addr)
+    signed_group = [txn.sign(pk) for txn in pooled_group]
+
+
+    write_dryrun(signed_group, addr)
+    
 
     txid = client.send_transactions(signed_group)
     print("Sending grouped transaction: {}".format(txid))
 
     result = wait_for_confirmation(client, txid, 4)
-    print("Result confirmed in rount: {}".format(result['confirmed-round']))
-
-    info = client.account_info(app_addr)
-    print("This Application Account has created:")
-    for asa in info['assets']:
-         print("\t{}".format(asa))
+    print("Result confirmed in round: {}".format(result['confirmed-round']))
+    print("Logs: ")
+    for log in result['logs']:
+        print_log(log)
 
 
-def write_dryrun(signed_txn, name, app_id, addrs):
+def write_dryrun(signed_txn, addr):
     path = os.path.dirname(os.path.abspath(__file__))
     # Read in approval teal source
-    app_src = open(os.path.join(path,'approval.teal')).read()
+    src = open(os.path.join(path,'approval.teal')).read()
 
     # Add source
-    sources = [
-        DryrunSource(
-            app_index=app_id, 
-            field_name="approv", 
-            source=app_src
-        ), 
-    ]
-
-    # Get account info
-    accounts = [client.account_info(a) for a in addrs]
-    # Get app info
-    app = client.application_info(app_id)
+    sources = [DryrunSource(field_name="approv", source=src)]
 
     # Create request
-    drr = DryrunRequest(
-        txns=signed_txn, 
-        sources=sources, 
-        apps=[app], 
-        accounts=accounts
-    )
+    drr = DryrunRequest(txns=signed_txn, sources=sources, accounts=[addr])
 
-    file_path = os.path.join(path, "{}.msgp".format(name))
+    # write drr
+    file_path = os.path.join(path, "dryrun.msgp")
     data = encoding.msgpack_encode(drr)
+    data = base64.b64encode(data.encode())
     with open(file_path, "wb") as f:
-        f.write(base64.b64decode(data))
+        f.write(data)
 
-    print("Created Dryrun file at {}".format(file_path))
-def get_fund_txn(send, sp, recv, amt):
-    return PaymentTxn(send, sp, recv, amt)
+    print("Created Dryrun file at {} - goto chrome://inspect".format(file_path))
+
+    print("""
+      START debugging session
+      either use from terminal in this folder or new terminal in same folder
+      `tealdbg debug approval.teal --dryrun-req {}.dr`
+    """.format(name))
+
+
+def print_log(log):
+    strlog = base64.b64decode(log).decode('UTF-8')
+    print("\t{}".format(strlog))
 
 def get_app_call(addr, sp, app_id, args):
     return ApplicationCallTxn(
@@ -96,12 +86,12 @@ def create_app(addr, pk):
     path = os.path.dirname(os.path.abspath(__file__))
 
     # Read in approval teal source && compile
-    approval = open(os.path.join(path,'approval.teal')).read()
+    approval = open(os.path.join(path, 'approval.teal')).read()
     app_result = client.compile(approval)
     app_bytes = base64.b64decode(app_result['result'])
     
     # Read in clear teal source && compile 
-    clear = open(os.path.join(path,'clear.teal')).read()
+    clear = open(os.path.join(path, 'clear.teal')).read()
     clear_result = client.compile(clear)
     clear_bytes = base64.b64decode(clear_result['result'])
 

@@ -4,12 +4,12 @@ const algosdk = require('algosdk');
 // const server = "<algod-address>";
 // const port = <algod-port>;
 // sandbox
-// const token = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
-// const server = "http://localhost";
-// const port = 4001;
-const token = "6b3a2ae3896f23be0a1f0cdd083b6d6d046fbeb594a3ce31f2963b717f74ad43"
-const server = "http://127.0.0.1"
-const port = 54746;
+const token = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+const server = "http://localhost";
+const port = 4001;
+// const token = "6b3a2ae3896f23be0a1f0cdd083b6d6d046fbeb594a3ce31f2963b717f74ad43"
+// const server = "http://127.0.0.1"
+// const port = 54746;
 // Import the filesystem module 
 const fs = require('fs'); 
 // import your private key mnemonic
@@ -70,7 +70,10 @@ let algodclient = new algosdk.Algodv2(token, server, port);
     // let args = ["<my string>"];
     // let lsig = algosdk.makeLogicSig(program, args);
     // Integer parameter
-    let args = [[123]];
+    // let args = [[123]];
+    // available in 1.9.1 encodeUint64
+    let args = algosdk.encodeUint64(123);
+
     let lsig = algosdk.makeLogicSig(program, args);
 
     // sign the logic signature with an account sk
@@ -93,7 +96,7 @@ let algodclient = new algosdk.Algodv2(token, server, port);
 
     // compile debugging
     dryrunResponse = await dryrunDebugging(lsig, txn, null);
-    let  textedJson = JSON.stringify(dryrunResponse, undefined, 4);
+    textedJson = JSON.stringify(dryrunResponse, undefined, 4);
     console.log("compile Response ");   
     console.log(textedJson);
 

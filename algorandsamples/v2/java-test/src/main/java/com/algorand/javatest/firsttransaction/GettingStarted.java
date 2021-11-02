@@ -120,7 +120,7 @@ class GettingStarted{
         printBalance(myAccount);
 
         try {
-            // Construct the transaction
+            // Construct the transaction / dispeser account
             final String RECEIVER = "HZ57J3K46JIJXILONBBZOHX6BKPXEM2VVXNRFSUED6DKFD5ZD24PMJ3MVA";
             String note = "Hello World";
             Response < TransactionParametersResponse > resp = client.TransactionParams().execute();

@@ -259,6 +259,7 @@ def call_app(client, private_key_user, index, app_args, approval_program_source,
     dir_path = os.path.dirname(os.path.realpath(__file__))
     drrpath = os.path.join(dir_path, drr_file_name)
     programpath = os.path.join(dir_path, teal_file_name)
+    
     # stdout, stderr = execute(["tealdbg", "debug", programpath, "--dryrun-req", drrpath])
 
     # send transaction

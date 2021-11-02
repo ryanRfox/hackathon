@@ -37,6 +37,10 @@ const mnemonic3 = "obey plate another blur jungle dynamic noise gift coach belt 
 const algodAddress = "http://localhost:4001"
 const algodToken = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 
+
+// const algodToken = "ef920e2e7e002953f4b29a8af720efe8e4ecc75ff102b165e0472834b25832c1"
+// const algodAddress = "http://hackathon.algodev.network"
+
 // prettyPrint prints Go structs
 func prettyPrint(data interface{}) {
 	var p []byte

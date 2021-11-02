@@ -506,18 +506,18 @@ async function revokeAsset(algodClient, alice, bob, assetID) {
 
     // signing and sending "txn" will send "amount" assets from "revocationTarget" to "recipient",
     // if and only if sender == clawback manager for this asset
-
-    const rtxn = algosdk.makeAssetTransferTxnWithSuggestedParams(
-        sender,
-        recipient,
+    const rtxn = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
+        from: sender,
+        to: recipient,
         closeRemainderTo,
         revocationTarget,
         amount,
         note,
-        assetID,
-        params,
+        assetIndex: assetID,
+        suggestedParams: params,
         reKeyTo
-    );
+    });
+
     // Must be signed by the account that is the clawback address    
     rawSignedTxn = rtxn.signTxn(alice.sk);
     const tx = (await algodClient.sendRawTransaction(rawSignedTxn).do());

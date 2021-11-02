@@ -3,6 +3,10 @@ package com.algorand.javatest.assets;
 import com.algorand.algosdk.account.Account;
 
 import java.math.BigInteger;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
 import java.util.Scanner;
 import com.algorand.algosdk.v2.client.common.AlgodClient;
 import com.algorand.algosdk.v2.client.model.*;
@@ -12,13 +16,23 @@ import com.algorand.algosdk.v2.client.common.*;
 import com.algorand.algosdk.crypto.Address;
 import com.algorand.algosdk.transaction.SignedTransaction;
 import com.algorand.algosdk.transaction.Transaction;
+import com.algorand.algosdk.util.CryptoProvider;
 import com.algorand.algosdk.util.Encoder;
 // see ASA param conventions here: https://github.com/algorandfoundation/ARCs/blob/main/ARCs/arc-0003.md
 
 public class GettingStartedFT {
     // Create Account
     static Scanner scan = new Scanner(System.in);
+    public String DISPENSER = "HZ57J3K46JIJXILONBBZOHX6BKPXEM2VVXNRFSUED6DKFD5ZD24PMJ3MVA";
 
+    private static final String SHA256_ALG = "SHA256";
+
+    public static byte[] digest(byte[] data) throws NoSuchAlgorithmException {
+        CryptoProvider.setupIfNeeded();
+        java.security.MessageDigest digest = java.security.MessageDigest.getInstance(SHA256_ALG);
+        digest.update(Arrays.copyOf(data, data.length));
+        return digest.digest();
+    }
     public Account createAccount() throws Exception {
         try {
             Account myAccount1 = new Account();
@@ -52,6 +66,262 @@ public class GettingStartedFT {
         AlgodClient client = new AlgodClient(ALGOD_API_ADDR, ALGOD_PORT, ALGOD_API_TOKEN);
         return client;
     }
+    public Long createFTAsset(Account alice) throws Exception {
+        System.out.println(String.format(""));
+        System.out.println(String.format("==> CREATE ASSET"));        
+      
+        if (client == null)
+            this.client = connectToNetwork();
+
+        // get changing network parameters for each transaction
+        Response<TransactionParametersResponse> resp = client.TransactionParams().execute();
+        if (!resp.isSuccessful()) {
+            throw new Exception(resp.message());
+        }
+        TransactionParametersResponse params = resp.body();
+        if (params == null) {
+            throw new Exception("Params retrieval error");
+        }
+        JSONObject jsonObj = new JSONObject(params.toString());
+        System.out.println("Algorand suggested parameters: " + jsonObj.toString(2));
+
+        // Create the Asset:
+
+        String unitName = "ALICECOI";
+        String assetName = "Alice's Artwork Coins@arc3";
+        String url = "https://s3.amazonaws.com/your-bucket/metadata.json";
+
+        // var {
+        //     "name": "ALICECOI",
+        //     "description": "Alice's Coins",
+        //        "properties": {
+        //         "simple_property": "Alice's coins",
+        //         "rich_property": {
+        //             "name": "AliceCoi",
+        //             "value": "001",
+        //             "display_value": "001",
+        //             "class": "emphasis",
+        //             "css": {
+        //                 "color": "#ffffff",
+        //                 "font-weight": "bold",
+        //                 "text-decoration": "underline"
+        //             }
+        //         },
+        //         "array_property": {
+        //             "name": "Alice Coins",
+        //             "value": [1, 2, 3, 4],
+        //             "class": "emphasis"
+        //         }
+        //     }
+        // }
+        boolean defaultFrozen = false;
+        Address manager = alice.getAddress(); // OPTIONAL: FOR DEMO ONLY, USED TO DESTROY ASSET WITHIN THIS SCRIPT
+        Address reserve = null;
+        Address freeze = null;
+        Address clawback = null;
+
+        // Use actual total > 1 to create a Fungible Token
+
+        // example 1:(fungible Tokens)
+        // assetTotal = 10, decimals = 0, result is 10 total actual
+
+        // example 2: (fractional NFT, each is 0.1)
+        // assetTotal = 10, decimals = 1, result is 1.0 total actual
+
+        // example 3: (NFT)
+        // assetTotal = 1, decimals = 0, result is 1 total actual
+
+        // set quantity and decimal placement
+        BigInteger assetTotal = BigInteger.valueOf(1000000);
+        // integer number of decimals for asset unit calculation
+        Integer decimals = 0;
+        // System.out.println("Working Directory = " + System.getProperty("user.dir"));
+        byte[] metadataFILE = Files.readAllBytes(Paths.get(System.getProperty("user.dir") + "/FT/metadata.json"));    
+        // use this to verify that the metadatahash displayed in the asset creation response is correct
+        // cat metadata.json | openssl dgst -sha256 -binary | openssl base64 -A
+
+        byte[] assetMetadataHash = digest(metadataFILE); 
+        String assetMetadataHashstr = "16efaa3924a6fd9d3a4824799a4ac65d";
+        Transaction tx = Transaction.AssetCreateTransactionBuilder()
+                .sender(alice.getAddress().toString())
+                .assetTotal(assetTotal)
+                .assetDecimals(decimals)
+                .assetUnitName(unitName)
+                .assetName(assetName)
+                .url(url)
+                .metadataHashUTF8(assetMetadataHashstr)
+                .manager(manager)
+                .reserve(reserve)
+                .freeze(freeze)
+                .defaultFrozen(defaultFrozen)
+                .clawback(clawback)
+                .suggestedParams(params)
+                .build();
+
+        // Sign the Transaction with creator account
+        SignedTransaction signedTxn = alice.signTransaction(tx);
+        Long assetID = null;
+        try {
+            // Submit the transaction to the network
+            String[] headers = { "Content-Type" };
+            String[] values = { "application/x-binary" };
+            // Submit the transaction to the network
+            byte[] encodedTxBytes = Encoder.encodeToMsgPack(signedTxn);
+            Response<PostTransactionsResponse> rawtxresponse = client.RawTransaction().rawtxn(encodedTxBytes)
+                    .execute(headers, values);
+            if (!rawtxresponse.isSuccessful()) {
+                throw new Exception(rawtxresponse.message());
+            }
+            String id = rawtxresponse.body().txId;
+
+            // Wait for transaction confirmation
+            PendingTransactionResponse pTrx = waitForConfirmation(client, id, 4);
+
+            assetID = pTrx.assetIndex;
+            System.out.println("AssetID = " + assetID);
+            printCreatedAsset(alice, assetID);
+            printAssetHolding(alice, assetID);
+            return assetID;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return assetID;
+        }
+
+    }
+
+    public void destroyFTAsset(Account alice, Long myAssetID) throws Exception {
+        System.out.println(String.format(""));
+        System.out.println(String.format("==> DESTROY ASSET"));  
+
+        if (client == null)
+            this.client = connectToNetwork();
+
+        // DESTROY
+
+        // Destroy the Asset:
+        // All assets should be in creators account
+        // get changing network parameters for each transaction
+        Response<TransactionParametersResponse> resp = client.TransactionParams().execute();
+        if (!resp.isSuccessful()) {
+            throw new Exception(resp.message());
+        }
+        TransactionParametersResponse params = resp.body();
+        if (params == null) {
+            throw new Exception("Params retrieval error");
+        }
+        // JSONObject jsonObj = new JSONObject(params.toString());
+        // System.out.println("Algorand suggested parameters: " + jsonObj.toString(2));
+
+        // set destroy asset specific parameters
+        // The manager must sign and submit the transaction
+        // asset close to
+        Transaction tx = Transaction.AssetDestroyTransactionBuilder().sender(alice.getAddress())
+                .assetIndex(myAssetID).suggestedParams(params).build();
+        // The transaction must be signed by the manager account
+        SignedTransaction signedTxn = alice.signTransaction(tx);
+        // send the transaction to the network
+        try {
+            // Submit the transaction to the network
+            String[] headers = { "Content-Type" };
+            String[] values = { "application/x-binary" };
+            // Submit the transaction to the network
+            byte[] encodedTxBytes = Encoder.encodeToMsgPack(signedTxn);
+            Response<PostTransactionsResponse> rawtxresponse = client.RawTransaction().rawtxn(encodedTxBytes)
+                    .execute(headers, values);
+            if (!rawtxresponse.isSuccessful()) {
+                throw new Exception(rawtxresponse.message());
+            }
+            String id = rawtxresponse.body().txId;
+            // Wait for transaction confirmation
+            PendingTransactionResponse pTrx = waitForConfirmation(client, id, 4);
+
+            // We list the account information for acct1
+            // and check that the asset is no longer exist
+            System.out.println("Transaction " + id + " confirmed in round " + pTrx.confirmedRound);
+            System.out.println("Account = " + alice.getAddress().toString());
+            System.out.println("AssetID destroyed  = " + myAssetID.toString());
+            // System.out.println("Closing Amount = " + pTrx.closingAmount.toString());
+
+            // Read the transaction
+            // JSONObject jsonObj2 = new JSONObject(pTrx.toString());
+            // System.out.println("Transaction information : " + jsonObj2.toString(2));
+            String accountInfo = client.AccountInformation(alice.getAddress()).execute().toString();
+            JSONObject jsonObj2 = new JSONObject(accountInfo.toString());
+            System.out.println("Account information (with assets destroyed) : " + jsonObj2.toString(2));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return;
+        }
+
+    }
+                // send funds back to dispenser
+    public void closeoutAccount(Account aliceAccount) throws Exception {
+        System.out.println(String.format(""));
+        System.out.println(String.format("==> CLOSE OUT ALICE'S ALGOS TO DISPENSER"));
+
+        if (client == null)
+            this.client = connectToNetwork();
+
+        printBalance(aliceAccount);
+
+        try {
+            // Construct the transaction
+
+            String note = "Hello World";
+            Response < TransactionParametersResponse > resp = client.TransactionParams().execute();
+            if (!resp.isSuccessful()) {
+                throw new Exception(resp.message());
+            }
+            TransactionParametersResponse params = resp.body();
+            if (params == null) {
+                throw new Exception("Params retrieval error");
+            }
+            JSONObject jsonObj = new JSONObject(params.toString());
+            System.out.println("Algorand suggested parameters: " + jsonObj.toString(2));
+            Transaction txn = Transaction.PaymentTransactionBuilder()
+                .sender(aliceAccount.getAddress().toString())
+                .note(note.getBytes())
+                .amount(0) 
+                .receiver(aliceAccount.getAddress().toString())
+                .suggestedParams(params)
+                .closeRemainderTo(DISPENSER) 
+                .build();
+           
+            // Sign the transaction
+            SignedTransaction signedTxn = aliceAccount.signTransaction(txn);
+            System.out.println("Signed transaction with txid: " + signedTxn.transactionID);
+
+            // Submit the transaction to the network
+            String[] headers = {"Content-Type"};
+            String[] values = {"application/x-binary"};
+            // Submit the transaction to the network
+            byte[] encodedTxBytes = Encoder.encodeToMsgPack(signedTxn);
+            Response < PostTransactionsResponse > rawtxresponse = client.RawTransaction().rawtxn(encodedTxBytes).execute(headers, values);
+            if (!rawtxresponse.isSuccessful()) {
+                throw new Exception(rawtxresponse.message());
+            }
+            String id = rawtxresponse.body().txId;
+
+            // Wait for transaction confirmation
+            PendingTransactionResponse pTrx = waitForConfirmation(client, id, 4);
+
+            System.out.println("Transaction " + id + " confirmed in round " + pTrx.confirmedRound);
+            // Read the transaction
+            JSONObject jsonObj2 = new JSONObject(pTrx.toString());
+            System.out.println("Transaction information (with notes): " + jsonObj2.toString(2));
+            System.out.println("Decoded note: " + new String(pTrx.txn.tx.note));
+            System.out.println("Amount: " + new String(pTrx.txn.tx.amount.toString())); 
+            System.out.println("Fee: " + new String(pTrx.txn.tx.fee.toString())); 
+            if (pTrx.closingAmount != null){
+             System.out.println("Closing Amount: " + new String(pTrx.closingAmount.toString()));                 
+            }          
+            printBalance(aliceAccount);
+
+        } catch (Exception e) {
+            System.err.println("Exception when calling algod#transactionInformation: " + e.getMessage());
+        }
+    }
+
 
     // utility function to print created asset
     public void printCreatedAsset(Account account, Long assetID) throws Exception {
@@ -162,240 +432,6 @@ public class GettingStartedFT {
         System.out.println(String.format("Account Balance: %d microAlgos", accountInfo.amount));
         return myAddress;
     }
-    public Long createFTAsset(Account aliceAccount) throws Exception {
-        if (client == null)
-            this.client = connectToNetwork();
-
-        // get changing network parameters for each transaction
-        Response<TransactionParametersResponse> resp = client.TransactionParams().execute();
-        if (!resp.isSuccessful()) {
-            throw new Exception(resp.message());
-        }
-        TransactionParametersResponse params = resp.body();
-        if (params == null) {
-            throw new Exception("Params retrieval error");
-        }
-        JSONObject jsonObj = new JSONObject(params.toString());
-        System.out.println("Algorand suggested parameters: " + jsonObj.toString(2));
-
-        // Create the Asset:
-
-        boolean defaultFrozen = false;
-        String unitName = "ALICECOI";
-        String assetName = "Alice's Artwork Coins";
-        String url = "http://this.test.com";
-        // todo
-        // var metadataJSON = {
-        // "name": "ALICECOI",
-        // "description": "Alice's Artwork Coins",
-        // "image":
-        // "https:\/\/s3.amazonaws.com\/your-bucket\/images\/MyCoinPicture.png",
-        // "image_integrity": "sha256-47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=",
-        // "properties": {
-        // "simple_property": "Alice's first artwork",
-        // "rich_property": {
-        // "name": "AliceCoi",
-        // "value": "001",
-        // "display_value": "001",
-        // "class": "emphasis",
-        // "css": {
-        // "color": "#ffffff",
-        // "font-weight": "bold",
-        // "text-decoration": "underline"
-        // }
-        // },
-        // "array_property": {
-        // "name": "Artwork Coins",
-        // "value": [1,2,3,4],
-        // "class": "emphasis"
-        // }
-        // }
-        // };
-        String assetMetadataHash = "16efaa3924a6fd9d3a4824799a4ac65d";
-        Address manager = aliceAccount.getAddress();
-        Address reserve = aliceAccount.getAddress();
-        Address freeze = aliceAccount.getAddress();
-        Address clawback = aliceAccount.getAddress();
-
-        // Use actual total > 1 to create a Fungible Token
-
-        // example 1:(fungible Tokens)
-        // assetTotal = 10, decimals = 0, result is 10 total actual
-
-        // example 2: (fractional NFT, each is 0.1)
-        // assetTotal = 10, decimals = 1, result is 1.0 total actual
-
-        // example 3: (NFT)
-        // assetTotal = 1, decimals = 0, result is 1 total actual
-
-        // set quantity and decimal placement
-        BigInteger assetTotal = BigInteger.valueOf(1000000);
-        // integer number of decimals for asset unit calculation
-        Integer decimals = 0;
-        Transaction tx = Transaction.AssetCreateTransactionBuilder().sender(aliceAccount.getAddress().toString())
-                .assetTotal(assetTotal).assetDecimals(decimals).assetUnitName(unitName).assetName(assetName).url(url)
-                .metadataHashUTF8(assetMetadataHash).manager(manager).reserve(reserve).freeze(freeze)
-                .defaultFrozen(defaultFrozen).clawback(clawback).suggestedParams(params).build();
-
-        // Sign the Transaction with creator account
-        SignedTransaction signedTxn = aliceAccount.signTransaction(tx);
-        Long assetID = null;
-        try {
-            // Submit the transaction to the network
-            String[] headers = { "Content-Type" };
-            String[] values = { "application/x-binary" };
-            // Submit the transaction to the network
-            byte[] encodedTxBytes = Encoder.encodeToMsgPack(signedTxn);
-            Response<PostTransactionsResponse> rawtxresponse = client.RawTransaction().rawtxn(encodedTxBytes)
-                    .execute(headers, values);
-            if (!rawtxresponse.isSuccessful()) {
-                throw new Exception(rawtxresponse.message());
-            }
-            String id = rawtxresponse.body().txId;
-
-            // Wait for transaction confirmation
-            PendingTransactionResponse pTrx = waitForConfirmation(client, id, 4);
-
-            assetID = pTrx.assetIndex;
-            System.out.println("AssetID = " + assetID);
-            printCreatedAsset(aliceAccount, assetID);
-            printAssetHolding(aliceAccount, assetID);
-            return assetID;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return assetID;
-        }
-
-    }
-
-    public void destroyFTAsset(Account aliceAccount, Long myAssetID) throws Exception {
-        if (client == null)
-            this.client = connectToNetwork();
-
-        // DESTROY
-
-        // Destroy the Asset:
-        // All assets should be in creators account
-        // get changing network parameters for each transaction
-        Response<TransactionParametersResponse> resp = client.TransactionParams().execute();
-        if (!resp.isSuccessful()) {
-            throw new Exception(resp.message());
-        }
-        TransactionParametersResponse params = resp.body();
-        if (params == null) {
-            throw new Exception("Params retrieval error");
-        }
-        // JSONObject jsonObj = new JSONObject(params.toString());
-        // System.out.println("Algorand suggested parameters: " + jsonObj.toString(2));
-
-        // set destroy asset specific parameters
-        // The manager must sign and submit the transaction
-        // asset close to
-        Transaction tx = Transaction.AssetDestroyTransactionBuilder().sender(aliceAccount.getAddress())
-                .assetIndex(myAssetID).suggestedParams(params).build();
-        // The transaction must be signed by the manager account
-        SignedTransaction signedTxn = aliceAccount.signTransaction(tx);
-        // send the transaction to the network
-        try {
-            // Submit the transaction to the network
-            String[] headers = { "Content-Type" };
-            String[] values = { "application/x-binary" };
-            // Submit the transaction to the network
-            byte[] encodedTxBytes = Encoder.encodeToMsgPack(signedTxn);
-            Response<PostTransactionsResponse> rawtxresponse = client.RawTransaction().rawtxn(encodedTxBytes)
-                    .execute(headers, values);
-            if (!rawtxresponse.isSuccessful()) {
-                throw new Exception(rawtxresponse.message());
-            }
-            String id = rawtxresponse.body().txId;
-            // Wait for transaction confirmation
-            PendingTransactionResponse pTrx = waitForConfirmation(client, id, 4);
-
-            // We list the account information for acct1
-            // and check that the asset is no longer exist
-            System.out.println("Transaction " + id + " confirmed in round " + pTrx.confirmedRound);
-            System.out.println("Account = " + aliceAccount.getAddress().toString());
-            System.out.println("AssetID destroyed  = " + myAssetID.toString());
-            // System.out.println("Closing Amount = " + pTrx.closingAmount.toString());
-
-            // Read the transaction
-            // JSONObject jsonObj2 = new JSONObject(pTrx.toString());
-            // System.out.println("Transaction information : " + jsonObj2.toString(2));
-            String accountInfo = client.AccountInformation(aliceAccount.getAddress()).execute().toString();
-            JSONObject jsonObj2 = new JSONObject(accountInfo.toString());
-            System.out.println("Account information (with assets destroyed) : " + jsonObj2.toString(2));
-        } catch (Exception e) {
-            e.printStackTrace();
-            return;
-        }
-
-    }
-                // send funds back to dispenser
-    public void closeoutAccount(Account aliceAccount) throws Exception {
-
-        if (client == null)
-            this.client = connectToNetwork();
-
-        printBalance(aliceAccount);
-
-        try {
-            // Construct the transaction
-            final String RECEIVER = "HZ57J3K46JIJXILONBBZOHX6BKPXEM2VVXNRFSUED6DKFD5ZD24PMJ3MVA";
-            String note = "Hello World";
-            Response < TransactionParametersResponse > resp = client.TransactionParams().execute();
-            if (!resp.isSuccessful()) {
-                throw new Exception(resp.message());
-            }
-            TransactionParametersResponse params = resp.body();
-            if (params == null) {
-                throw new Exception("Params retrieval error");
-            }
-            JSONObject jsonObj = new JSONObject(params.toString());
-            System.out.println("Algorand suggested parameters: " + jsonObj.toString(2));
-            Transaction txn = Transaction.PaymentTransactionBuilder()
-                .sender(aliceAccount.getAddress().toString())
-                .note(note.getBytes())
-                .amount(1000000) // 1 algo = 1000000 microalgos
-                .receiver(new Address(RECEIVER))
-                .suggestedParams(params)
-                .closeRemainderTo(RECEIVER) 
-                .build();
-           
-            // Sign the transaction
-            SignedTransaction signedTxn = aliceAccount.signTransaction(txn);
-            System.out.println("Signed transaction with txid: " + signedTxn.transactionID);
-
-            // Submit the transaction to the network
-            String[] headers = {"Content-Type"};
-            String[] values = {"application/x-binary"};
-            // Submit the transaction to the network
-            byte[] encodedTxBytes = Encoder.encodeToMsgPack(signedTxn);
-            Response < PostTransactionsResponse > rawtxresponse = client.RawTransaction().rawtxn(encodedTxBytes).execute(headers, values);
-            if (!rawtxresponse.isSuccessful()) {
-                throw new Exception(rawtxresponse.message());
-            }
-            String id = rawtxresponse.body().txId;
-
-            // Wait for transaction confirmation
-            PendingTransactionResponse pTrx = waitForConfirmation(client, id, 4);
-
-            System.out.println("Transaction " + id + " confirmed in round " + pTrx.confirmedRound);
-            // Read the transaction
-            JSONObject jsonObj2 = new JSONObject(pTrx.toString());
-            System.out.println("Transaction information (with notes): " + jsonObj2.toString(2));
-            System.out.println("Decoded note: " + new String(pTrx.txn.tx.note));
-            System.out.println("Amount: " + new String(pTrx.txn.tx.amount.toString())); 
-            System.out.println("Fee: " + new String(pTrx.txn.tx.fee.toString())); 
-            if (pTrx.closingAmount != null){
-             System.out.println("Closing Amount: " + new String(pTrx.closingAmount.toString()));                 
-            }          
-            printBalance(aliceAccount);
-
-        } catch (Exception e) {
-            System.err.println("Exception when calling algod#transactionInformation: " + e.getMessage());
-        }
-    }
-
 
     public static void main(String args[]) throws Exception {
         GettingStartedFT t = new GettingStartedFT();

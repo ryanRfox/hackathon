@@ -19,19 +19,20 @@ const indexer_token = "";
 let indexerClient = new algosdk.Indexer(indexer_token, indexer_server, indexer_port);
     
 (async () => {
-    let address = "AMF3CVE4MFZM24CCFEWRCOCWW7TEDJQS3O26OUBRHZ3KWKUBE5ZJRNZ3OY";
-    let asset_id = 29340683;
+    let address = "G26NNWKJUPSTGVLLDHCUQ7LFJHMZP2UUAQG2HURLI6LOEI235YCQUNPQEI";
+    let asset_id = 408947;
  
     let limit = 1;
     let min_amount = 5;
 
-    // let response = await indexerClient.searchForTransactions()
-    //         .address(address)
-    //         .currencyGreaterThan(min_amount)
-    //     .assetID(asset_id).do();
-    
     let response = await indexerClient.searchForTransactions()
+            .address(address)
+            .currencyGreaterThan(min_amount)
+            .limit(limit)
         .assetID(asset_id).do();
+    
+    // let response = await indexerClient.searchForTransactions()
+    //     .assetID(asset_id).do();
     console.log("Information for Transaction search: " + JSON.stringify(response, undefined, 2));
     }   
 )().catch(e => {

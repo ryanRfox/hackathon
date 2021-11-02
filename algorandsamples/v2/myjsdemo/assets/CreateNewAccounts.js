@@ -25,7 +25,7 @@ console.log("Account 2 = " + account2);
 let account2_mnemonic = algosdk.secretKeyToMnemonic(acct.sk);
 console.log("Account Mnemonic 2 = " +account2_mnemonic);
 let recoveredAccount2 = algosdk.mnemonicToSecretKey(account2_mnemonic);
-let isValid = algosdk.isValidAddress(recoveredAccount2.addr);
+isValid = algosdk.isValidAddress(recoveredAccount2.addr);
 console.log("Is this a valid address: " + isValid);
 console.log("Account created. Save off Mnemonic and address");
 
@@ -36,7 +36,7 @@ console.log("Account 3 = " + account3);
 let account3_mnemonic = algosdk.secretKeyToMnemonic(acct.sk);
 console.log("Account Mnemonic 3 = " +account3_mnemonic);
 let recoveredAccount3 = algosdk.mnemonicToSecretKey(account3_mnemonic);
-let isValid = algosdk.isValidAddress(recoveredAccount3.addr);
+isValid = algosdk.isValidAddress(recoveredAccount3.addr);
 console.log("Is this a valid address: " + isValid);
 console.log("Account created. Save off Mnemonic and address");
 console.log("");

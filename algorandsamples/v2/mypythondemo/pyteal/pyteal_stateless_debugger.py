@@ -120,8 +120,10 @@ write_teal(program_file_name, teal_source)
 
 # read TEAL program
 # data = load_resource(myprogram)
-algod_address = "http://localhost:4001"
-algod_token = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+# algod_address = "http://localhost:4001"
+# algod_token = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+algod_address = "http://localhost:8080"
+algod_token = "8024065d94521d253181cff008c44fa4ae4bdf44f028834cd4b4769a26282de1"
 # create algod clients
 acl = algod.AlgodClient(algod_token, algod_address)
 try:

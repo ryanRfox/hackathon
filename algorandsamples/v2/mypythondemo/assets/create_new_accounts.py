@@ -1,4 +1,4 @@
-import json
+# import json
 from algosdk import account, mnemonic
 
 acct = account.generate_account()

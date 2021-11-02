@@ -37,15 +37,18 @@ def wait_for_confirmation(client, transaction_id, timeout):
         'pending tx not found in timeout rounds, timeout value = : {}'.format(timeout))
 
 def getting_started_example():
-	# algod_address = "http://localhost:4001"
-	# algod_token = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+	algod_address = "http://localhost:4001"
+	algod_token = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 	# algod_client = algod.AlgodClient(algod_token, algod_address)
+	# algod_address = "http://hackathon.algodev.network:9100"
+	# algod_token = "ef920e2e7e002953f4b29a8af720efe8e4ecc75ff102b165e0472834b25832c1"
 
+	algod_client = algod.AlgodClient(algod_token, algod_address)
 
-	algod_token = 'WpYvadV1w53mSODr6Xrq77tw0ODcgHAx9iJBn5tb'
-	algod_address = 'https://testnet-algorand.api.purestake.io/ps2'
-	purestake_token = {'X-Api-key': algod_token}
-	algod_client = algod.AlgodClient(algod_token, algod_address, headers=purestake_token)
+	# algod_token = 'WpYvadV1w53mSODr6Xrq77tw0ODcgHAx9iJBn5tb'
+	# algod_address = 'https://testnet-algorand.api.purestake.io/ps2'
+	# purestake_token = {'X-Api-key': algod_token}
+	# algod_client = algod.AlgodClient(algod_token, algod_address, headers=purestake_token)
 
 
 	passphrase = "price clap dilemma swim genius fame lucky crack torch hunt maid palace ladder unlock symptom rubber scale load acoustic drop oval cabbage review abstract embark"
@@ -66,9 +69,9 @@ def getting_started_example():
 	params.flat_fee = True
 	params.fee = 1000
 	receiver = "GD64YIY3TWGDMCNPP553DZPPR6LDUSFQOIJVFDPPXWEG3FVOJCCDBBHU5A"
-	note = "Hello World".encode()
+	note = "Hello Russ".encode()
 
-	unsigned_txn = PaymentTxn(my_address, params, receiver, 1000000, None, note)
+	unsigned_txn = PaymentTxn(my_address, params, receiver, 100000, None, note)
 
 	# sign transaction
 	signed_txn = unsigned_txn.sign(mnemonic.to_private_key(passphrase))

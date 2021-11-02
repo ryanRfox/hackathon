@@ -53,7 +53,8 @@ def send_note():
     # comment out the next two (2) lines to use suggested fees
     params.flat_fee = True
     params.fee = 1000
-    note = '{"firstName":"John", "lastName":"Doe"}'.encode()
+    note = '{"firstName":"JohnChris", "lastName":"Doe"}'.encode()
+    # note = 'JohnChris'.encode()   
     receiver = "GD64YIY3TWGDMCNPP553DZPPR6LDUSFQOIJVFDPPXWEG3FVOJCCDBBHU5A"
 
     unsigned_txn = PaymentTxn(my_address, params, receiver, 1000000, None, note)

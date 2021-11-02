@@ -12,9 +12,12 @@ from algosdk.future.transaction import AssetConfigTxn, AssetTransferTxn, AssetFr
 
 mnemonic1 = "canal enact luggage spring similar zoo couple stomach shoe laptop middle wonder eager monitor weather number heavy skirt siren purity spell maze warfare ability ten"
 mnemonic2 = "beauty nurse season autumn curve slice cry strategy frozen spy panic hobby strong goose employ review love fee pride enlist friend enroll clip ability runway"
+# mnemonic1 = "hire dust few train cute ugly always lab devote rate dumb beyond flat concert disagree tone wrong boost raven brick sibling shy switch abstract festival"
+# mnemonic2 = "client install leopard vendor cave board prize wage ecology snow bone gate salt bean mercy theory coconut cushion bamboo weather idea ignore smart abandon arctic"
+
 mnemonic3 = "picnic bright know ticket purity pluck stumble destroy ugly tuna luggage quote frame loan wealth edge carpet drift cinnamon resemble shrimp grain dynamic absorb edge"
-
-
+# hire dust few train cute ugly always lab devote rate dumb beyond flat concert disagree tone wrong boost raven brick sibling shy switch abstract festival
+# client install leopard vendor cave board prize wage ecology snow bone gate salt bean mercy theory coconut cushion bamboo weather idea ignore smart abandon arctic
 # For ease of reference, add account public and private keys to
 # an accounts dict.
 accounts = {}

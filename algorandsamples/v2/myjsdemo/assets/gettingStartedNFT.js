@@ -1,7 +1,7 @@
 const algosdk = require('algosdk');
 const crypto = require('crypto');
-const fs = require('fs');
-
+//const fs = require('fs');
+const fs = require('fs/promises');
 // see ASA param conventions here: https://github.com/algorandfoundation/ARCs/blob/main/ARCs/arc-0003.md
 // for JavaScript SDK doc see: https://algorand.github.io/js-algorand-sdk/
 
@@ -83,7 +83,8 @@ async function createAsset(algodClient, alice) {
     //const metadata2 = "16efaa3924a6fd9d3a4824799a4ac65d";
 
     const fullPath = __dirname + '/NFT/metadata.json';
-    const metadatafile = (await fs.readFileSync(fullPath)).toString();
+    const metadatafile = (await fs.readFile(fullPath));
+//    const metadatafile = (await fs.readFileSync(fullPath)).toString();
     const hash = crypto.createHash('sha256');
     hash.update(metadatafile);
 
@@ -94,7 +95,8 @@ async function createAsset(algodClient, alice) {
 
 
     const fullPathImage = __dirname + '/NFT/alice-nft.png';
-    const metadatafileImage = (await fs.readFileSync(fullPathImage)).toString();
+//    const metadatafileImage = (await fs.readFileSync(fullPathImage));
+    const metadatafileImage = (await fs.readFile(fullPathImage));
     const hashImage = crypto.createHash('sha256');
     hashImage.update(metadatafileImage);
     const hashImageBase64 = hashImage.digest("base64");

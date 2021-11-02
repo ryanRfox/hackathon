@@ -33,10 +33,10 @@ for m in [mnemonic1, mnemonic2, mnemonic3]:
 # algod_address = "http://localhost:4001"
 # algod_token = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 
-# algod_address = "http://hackathon.algodev.network:9100"
-# algod_token = "ef920e2e7e002953f4b29a8af720efe8e4ecc75ff102b165e0472834b25832c1"
 algod_address = "http://localhost:8080"
 algod_token = "8024065d94521d253181cff008c44fa4ae4bdf44f028834cd4b4769a26282de1"
+# algod_address = "http://hackathon.algodev.network:9100"
+# algod_token = "ef920e2e7e002953f4b29a8af720efe8e4ecc75ff102b165e0472834b25832c1"
 
 # 127.0.0.1:8080
 # 8024065d94521d253181cff008c44fa4ae4bdf44f028834cd4b4769a26282de1

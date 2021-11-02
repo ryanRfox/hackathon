@@ -45,10 +45,12 @@ const waitForConfirmation = async function (algodclient, txId, timeout) {
 // const server = <algod-address>;
 // const port = <algod-port>;
 // sandbox
-const token = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
-const server = "http://localhost";
-const port = 4001;
-
+// const token = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+// const server = "http://localhost";
+// const port = 4001;
+const token = "ef920e2e7e002953f4b29a8af720efe8e4ecc75ff102b165e0472834b25832c1";
+const server = "http://hackathon.algodev.network";
+const port = 9100;
 const keypress = async () => {
     process.stdin.setRawMode(true)
     return new Promise(resolve => process.stdin.once('data', () => {

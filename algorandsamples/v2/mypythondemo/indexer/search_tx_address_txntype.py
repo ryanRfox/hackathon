@@ -4,10 +4,9 @@ import json
 from algosdk.v2client import indexer
 
 # instantiate indexer client
-myindexer = indexer.IndexerClient(indexer_token="", indexer_address="http://localhost:8980")
-
+myindexer = indexer.IndexerClient(indexer_token="", indexer_address="http://localhost:8981")
 response = myindexer.search_transactions_by_address(
-    address="SWOUICD7Y5PQBWWEYC4XZAQZI7FJRZLD5O3CP4GU2Y7FP3QFKA7RHN2WJU",
+    address="NI2EDLP2KZYH6XYLCEZSI5SSO2TFBYY3ZQ5YQENYAGJFGXN4AFHPTR3LXU",
     txn_type="acfg")
 
 print("txn_type: acfg = " +

@@ -13,14 +13,15 @@ client = algod.AlgodClient(token, url)
 
 def demo():
     # Create acct
-    addr, pk = get_accounts()[0]
+    addr, pk = get_accounts("Testnet")[0]
     print("Using {}".format(addr))
 
     # Create app
-    app_id = 9
+    app_id = 41286804
     # app_id = create_app(addr, pk)
     print("Created App with id: {}".format(app_id))
-
+    actual = logic.get_application_address(app_id)
+    print ("Address of Smart Contract: {}".format(actual))
     sp = client.suggested_params()
     pooled_group = [
         get_app_call(addr, sp, app_id, []), 
@@ -29,8 +30,7 @@ def demo():
     signed_group = [txn.sign(pk) for txn in pooled_group]
 
 
-    write_dryrun(signed_group, addr)
-    
+    write_dryrun(signed_group, "dryrun", app_id, [addr])
 
     txid = client.send_transactions(signed_group)
     print("Sending grouped transaction: {}".format(txid))
@@ -112,7 +112,8 @@ def create_app(addr, pk):
 
     # Sign it
     signed_txn = create_txn.sign(pk)
-
+    # tealdbg debug approval.teal --dryrun-req dryrun.msgp
+    # chrome://inspect
     # Ship it
     txid = client.send_transaction(signed_txn)
     

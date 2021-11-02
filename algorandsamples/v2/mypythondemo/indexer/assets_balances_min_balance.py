@@ -4,7 +4,7 @@ import json
 from algosdk.v2client import indexer
 
 # instantiate indexer client
-myindexer = indexer.IndexerClient(indexer_token="", indexer_address="http://localhost:8980")
+myindexer = indexer.IndexerClient(indexer_token="", indexer_address="http://localhost:8981")
 
 # gets assets with a min balance of 200 for AssetID
 response = myindexer.asset_balances(

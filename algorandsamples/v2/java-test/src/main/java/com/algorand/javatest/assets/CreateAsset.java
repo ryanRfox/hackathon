@@ -1,9 +1,8 @@
 package com.algorand.javatest.assets;
 
 import java.math.BigInteger;
-
-import com.algorand.algosdk.v2.client.common.AlgodClient;
 import com.algorand.algosdk.account.Account;
+import com.algorand.algosdk.v2.client.common.AlgodClient;
 import com.algorand.algosdk.v2.client.model.*;
 import org.json.JSONArray;
 import org.json.JSONObject;

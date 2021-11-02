@@ -25,12 +25,12 @@ mnemonic_2 = "unlock garage rack news treat bonus census describe stuff habit ha
 mnemonic_3 = "obey plate another blur jungle dynamic noise gift coach belt chronic pair hybrid valve blouse page submit typical poet hole hold begin doll ability master"
 
 # user declared algod connection parameters
-# algod_address = "http://localhost:4001"
-# algod_token = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+algod_address = "http://localhost:4001"
+algod_token = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 # algod_address = "http://localhost:8080"
 # algod_token = "8024065d94521d253181cff008c44fa4ae4bdf44f028834cd4b4769a26282de1"
-algod_token = "2f3203f21e738a1de6110eba6984f9d03e5a95d7a577b34616854064cf2c0e7b"
-algod_address = "https://academy-algod.dev.aws.algodev.network/"
+# algod_token = "2f3203f21e738a1de6110eba6984f9d03e5a95d7a577b34616854064cf2c0e7b"
+# algod_address = "https://academy-algod.dev.aws.algodev.network/"
 
 # Function that waits for a given txId to be confirmed by the network
 

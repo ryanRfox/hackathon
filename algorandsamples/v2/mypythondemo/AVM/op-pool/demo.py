@@ -16,11 +16,11 @@ client = algod.AlgodClient(token, url)
 
 def demo():
     # Create acct
-    addr, pk = get_accounts()[0]
+    addr, pk = get_accounts("Testnet")[0]
     print("Using {}".format(addr))
 
     # Create app
-    app_id =   1
+    app_id =   41057222
     # app_id = create_app(addr, pk)
     print("Created App with id: {}".format(app_id))
 
