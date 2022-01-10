@@ -1,47 +1,49 @@
 import json
 import time
 import base64
+from algosdk import account
 from algosdk import mnemonic
 from algosdk.v2client import algod
 from algosdk.future.transaction import PaymentTxn
+from algosdk.future.transaction import wait_for_confirmation
 
 
 # utility for waiting on a transaction confirmation
-def wait_for_confirmation(client, transaction_id, timeout):
-    """
-    Wait until the transaction is confirmed or rejected, or until 'timeout'
-    number of rounds have passed.
-    Args:
-        transaction_id (str): the transaction to wait for
-        timeout (int): maximum number of rounds to wait    
-    Returns:
-        dict: pending transaction information, or throws an error if the transaction
-            is not confirmed or rejected in the next timeout rounds
-    """
-    start_round = client.status()["last-round"] + 1;
-    current_round = start_round
+# def wait_for_confirmation(client, transaction_id, timeout):
+#     """
+#     Wait until the transaction is confirmed or rejected, or until 'timeout'
+#     number of rounds have passed.
+#     Args:
+#         transaction_id (str): the transaction to wait for
+#         timeout (int): maximum number of rounds to wait    
+#     Returns:
+#         dict: pending transaction information, or throws an error if the transaction
+#             is not confirmed or rejected in the next timeout rounds
+#     """
+#     start_round = client.status()["last-round"] + 1;
+#     current_round = start_round
 
-    while current_round < start_round + timeout:
-        try:
-            pending_txn = client.pending_transaction_info(transaction_id)
-        except Exception:
-            return 
-        if pending_txn.get("confirmed-round", 0) > 0:
-            return pending_txn
-        elif pending_txn["pool-error"]:  
-            raise Exception(
-                'pool error: {}'.format(pending_txn["pool-error"]))
-        client.status_after_block(current_round)                   
-        current_round += 1
-    raise Exception(
-        'pending tx not found in timeout rounds, timeout value = : {}'.format(timeout))
+#     while current_round < start_round + timeout:
+#         try:
+#             pending_txn = client.pending_transaction_info(transaction_id)
+#         except Exception:
+#             return 
+#         if pending_txn.get("confirmed-round", 0) > 0:
+#             return pending_txn
+#         elif pending_txn["pool-error"]:  
+#             raise Exception(
+#                 'pool error: {}'.format(pending_txn["pool-error"]))
+#         client.status_after_block(current_round)                   
+#         current_round += 1
+#     raise Exception(
+#         'pending tx not found in timeout rounds, timeout value = : {}'.format(timeout))
 
 def getting_started_example():
-	algod_address = "http://localhost:4001"
-	algod_token = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+	# algod_address = "http://localhost:4001"
+	# algod_token = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 	# algod_client = algod.AlgodClient(algod_token, algod_address)
-	# algod_address = "http://hackathon.algodev.network:9100"
-	# algod_token = "ef920e2e7e002953f4b29a8af720efe8e4ecc75ff102b165e0472834b25832c1"
+	algod_address = "http://hackathon.algodev.network:9100"
+	algod_token = "ef920e2e7e002953f4b29a8af720efe8e4ecc75ff102b165e0472834b25832c1"
 
 	algod_client = algod.AlgodClient(algod_token, algod_address)
 
@@ -58,8 +60,14 @@ def getting_started_example():
 	# generate a public/private key pair
 	private_key = mnemonic.to_private_key(passphrase)
 	my_address = mnemonic.to_public_key(passphrase)
+
+
 	print("My address: {}".format(my_address))
 
+	#Generate new account for this transaction
+	secret_key, my_address = account.generate_account()
+	
+	print("My address: {}".format(my_address))
 	account_info = algod_client.account_info(my_address)
 	print("Account balance: {} microAlgos".format(account_info.get('amount')))
 
@@ -69,12 +77,13 @@ def getting_started_example():
 	params.flat_fee = True
 	params.fee = 1000
 	receiver = "GD64YIY3TWGDMCNPP553DZPPR6LDUSFQOIJVFDPPXWEG3FVOJCCDBBHU5A"
-	note = "Hello Russ".encode()
+	note = "Hello World".encode()
 
 	unsigned_txn = PaymentTxn(my_address, params, receiver, 100000, None, note)
 
 	# sign transaction
-	signed_txn = unsigned_txn.sign(mnemonic.to_private_key(passphrase))
+	signed_txn = unsigned_txn.sign(secret_key)
+	# signed_txn = unsigned_txn.sign(mnemonic.to_private_key(passphrase))
 
 
     # wait for confirmation	

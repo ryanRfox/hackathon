@@ -20,7 +20,7 @@ def demo():
     print("Using {}".format(addr))
 
     # Create app
-    app_id =   41057222
+    app_id =   43005503
     # app_id = create_app(addr, pk)
     print("Created App with id: {}".format(app_id))
 

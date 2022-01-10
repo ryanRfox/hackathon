@@ -43,8 +43,8 @@ const waitForConfirmation = async function (algodclient, txId) {
 async function submitAtomicTransfer() {
 
     try {
-        // receiver Account C
-        const receiver = "GD64YIY3TWGDMCNPP553DZPPR6LDUSFQOIJVFDPPXWEG3FVOJCCDBBHU5A";
+        // Account C
+        const  myAccountC = "GD64YIY3TWGDMCNPP553DZPPR6LDUSFQOIJVFDPPXWEG3FVOJCCDBBHU5A";
         // sample show account A to C
         // B to A 
         // grouped
@@ -59,12 +59,19 @@ async function submitAtomicTransfer() {
         // Account B
         let myAccountB = await recoverAccount2();
         console.log("My account B address: %s", myAccountB.addr)
+        //Check your balances
+        let accountInfo = await algodClient.accountInformation(myAccountA.addr).do();
+        console.log("Account A balance: %d microAlgos", accountInfo.amount);
+        accountInfo = await algodClient.accountInformation(myAccountB.addr).do();
+        console.log("Account B balance: %d microAlgos", accountInfo.amount);  
+        accountInfo = await algodClient.accountInformation(myAccountC).do();
+        console.log("Account C balance: %d microAlgos", accountInfo.amount);   
 
         // get suggested params from the network
         let params = await algodClient.getTransactionParams().do();
 
         // Transaction A to C 
-        let transaction1 = algosdk.makePaymentTxnWithSuggestedParams(myAccountA.addr, receiver, 1000000, undefined, undefined, params);
+        let transaction1 = algosdk.makePaymentTxnWithSuggestedParams(myAccountA.addr, myAccountC, 1000000, undefined, undefined, params);
         // Create transaction B to A
         let transaction2 = algosdk.makePaymentTxnWithSuggestedParams(myAccountB.addr, myAccountA.addr, 1000000, undefined, undefined, params);
 

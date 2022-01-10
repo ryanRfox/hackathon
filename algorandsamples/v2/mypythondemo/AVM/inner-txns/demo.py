@@ -17,8 +17,8 @@ def demo():
     print("Using {}".format(addr))
 
     # Create app
-    app_id =  41213193 
-    # app_id = create_app(addr, pk)
+    # app_id =  43005850 
+    app_id = create_app(addr, pk)
     print("Created App with id: {}".format(app_id))
     # new AVM call to get Application address
     app_addr = logic.get_application_address(app_id)

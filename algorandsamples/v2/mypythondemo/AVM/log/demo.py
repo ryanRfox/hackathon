@@ -17,8 +17,8 @@ def demo():
     print("Using {}".format(addr))
 
     # Create app
-    app_id = 41286804
-    # app_id = create_app(addr, pk)
+    # app_id = 43006167
+    app_id = create_app(addr, pk)
     print("Created App with id: {}".format(app_id))
     actual = logic.get_application_address(app_id)
     print ("Address of Smart Contract: {}".format(actual))

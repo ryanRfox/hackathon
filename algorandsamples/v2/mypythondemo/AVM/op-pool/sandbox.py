@@ -9,7 +9,8 @@ KMD_WALLET_PASSWORD = ""
 
 def get_accounts(network):
     if (network == "Testnet"):
-        passphrase = "price clap dilemma swim genius fame lucky crack torch hunt maid palace ladder unlock symptom rubber scale load acoustic drop oval cabbage review abstract embark"
+        # TH76Z6KXKPRLMKZYPYHZ7VFDB2K5I5VNL3AXEADD2CMHTQZNSCQFZHXQP4
+        passphrase = "label raven amazing bench board chaos cave okay tongue call lounge address hold believe case ticket conduct display blood slide patch flock head absent easily"
         private_key = mnemonic.to_private_key(passphrase)
         my_address = mnemonic.to_public_key(passphrase)
         print("My address: {}".format(my_address))

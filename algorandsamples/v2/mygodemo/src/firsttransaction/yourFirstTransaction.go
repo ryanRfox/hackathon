@@ -20,48 +20,48 @@ const algodAddress = "http://localhost:4001"
 const algodToken = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 
 // Function that waits for a given txId to be confirmed by the network
-func waitForConfirmation(txID string, client *algod.Client, timeout uint64) (models.PendingTransactionInfoResponse, error) {
-	pt := new(models.PendingTransactionInfoResponse)
-	if client == nil || txID == "" || timeout < 0 {
-		fmt.Printf("Bad arguments for waitForConfirmation")
-		var msg = errors.New("Bad arguments for waitForConfirmation")
-		return *pt, msg
+// func waitForConfirmation(txID string, client *algod.Client, timeout uint64) (models.PendingTransactionInfoResponse, error) {
+// 	pt := new(models.PendingTransactionInfoResponse)
+// 	if client == nil || txID == "" || timeout < 0 {
+// 		fmt.Printf("Bad arguments for waitForConfirmation")
+// 		var msg = errors.New("Bad arguments for waitForConfirmation")
+// 		return *pt, msg
 
-	}
+// 	}
 
-	status, err := client.Status().Do(context.Background())
-	if err != nil {
-		fmt.Printf("error getting algod status: %s\n", err)
-		var msg = errors.New(strings.Join([]string{"error getting algod status: "}, err.Error()))
-		return *pt, msg
-	}
-	startRound := status.LastRound + 1
-	currentRound := startRound
+// 	status, err := client.Status().Do(context.Background())
+// 	if err != nil {
+// 		fmt.Printf("error getting algod status: %s\n", err)
+// 		var msg = errors.New(strings.Join([]string{"error getting algod status: "}, err.Error()))
+// 		return *pt, msg
+// 	}
+// 	startRound := status.LastRound + 1
+// 	currentRound := startRound
 
-	for currentRound < (startRound + timeout) {
+// 	for currentRound < (startRound + timeout) {
 
-		*pt, _, err = client.PendingTransactionInformation(txID).Do(context.Background())
-		if err != nil {
-			fmt.Printf("error getting pending transaction: %s\n", err)
-			var msg = errors.New(strings.Join([]string{"error getting pending transaction: "}, err.Error()))
-			return *pt, msg
-		}
-		if pt.ConfirmedRound > 0 {
-			fmt.Printf("Transaction "+txID+" confirmed in round %d\n", pt.ConfirmedRound)
-			return *pt, nil
-		}
-		if pt.PoolError != "" {
-			fmt.Printf("There was a pool error, then the transaction has been rejected!")
-			var msg = errors.New("There was a pool error, then the transaction has been rejected")
-			return *pt, msg
-		}
-		fmt.Printf("waiting for confirmation\n")
-		status, err = client.StatusAfterBlock(currentRound).Do(context.Background())
-		currentRound++
-	}
-	msg := errors.New("Tx not found in round range")
-	return *pt, msg
-}
+// 		*pt, _, err = client.PendingTransactionInformation(txID).Do(context.Background())
+// 		if err != nil {
+// 			fmt.Printf("error getting pending transaction: %s\n", err)
+// 			var msg = errors.New(strings.Join([]string{"error getting pending transaction: "}, err.Error()))
+// 			return *pt, msg
+// 		}
+// 		if pt.ConfirmedRound > 0 {
+// 			fmt.Printf("Transaction "+txID+" confirmed in round %d\n", pt.ConfirmedRound)
+// 			return *pt, nil
+// 		}
+// 		if pt.PoolError != "" {
+// 			fmt.Printf("There was a pool error, then the transaction has been rejected!")
+// 			var msg = errors.New("There was a pool error, then the transaction has been rejected")
+// 			return *pt, msg
+// 		}
+// 		fmt.Printf("waiting for confirmation\n")
+// 		status, err = client.StatusAfterBlock(currentRound).Do(context.Background())
+// 		currentRound++
+// 	}
+// 	msg := errors.New("Tx not found in round range")
+// 	return *pt, msg
+// }
 func main() {
 	algodClient, err := algod.MakeClient(algodAddress, algodToken)
 	if err != nil {
@@ -102,7 +102,8 @@ func main() {
 	txParams.Fee = 1000
 
 	fromAddr := myAddress.String()
-	toAddr := "GD64YIY3TWGDMCNPP553DZPPR6LDUSFQOIJVFDPPXWEG3FVOJCCDBBHU5A"
+	toAddr := "HZ57J3K46JIJXILONBBZOHX6BKPXEM2VVXNRFSUED6DKFD5ZD24PMJ3MVA"
+	
 	var amount uint64 = 1000000
 	var minFee uint64 = 1000
 	note := []byte("Hello World")
