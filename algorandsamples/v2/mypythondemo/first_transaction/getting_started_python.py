@@ -23,40 +23,40 @@ def getting_started_example():
 	# algod_address = "http://hackathon.algodev.network:9100"
 	# algod_token = "ef920e2e7e002953f4b29a8af720efe8e4ecc75ff102b165e0472834b25832c1"
 
-	algod_client = algod.AlgodClient(algod_token, algod_address)
+    algod_client = algod.AlgodClient(algod_token, algod_address)
 
     # Generate new account for this transaction
-	secret_key, my_address = account.generate_account()
+    secret_key, my_address = account.generate_account()
     
-	print("My address: {}".format(my_address))
+    print("My address: {}".format(my_address))
 
     # Check your balance. It should be 0 microAlgos
 
-	account_info = algod_client.account_info(my_address)
-	print("Account balance: {} microAlgos".format(account_info.get('amount')) + "\n")
+    account_info = algod_client.account_info(my_address)
+    print("Account balance: {} microAlgos".format(account_info.get('amount')) + "\n")
 
     # Fund the created account
-	print('Fund the created account using testnet faucet: \n https://dispenser.testnet.aws.algodev.network/?account=' + format(my_address))
+    print('Fund the created account using testnet faucet: \n https://dispenser.testnet.aws.algodev.network/?account=' + format(my_address))
 
-	completed = ""
-	while completed.lower() != 'yes':
-		completed = input("Type 'yes' once you funded the account: ");
+    completed = ""
+    while completed.lower() != 'yes':
+        completed = input("Type 'yes' once you funded the account: ");
 
-	print('Fund transfer in process...')
+    print('Fund transfer in process...')
     # Wait for the faucet to transfer funds
-	time.sleep(10)
+    time.sleep(10)
     
-	print('Fund transferred!')
+    print('Fund transferred!')
     # Check your balance. It should be 5000000 microAlgos
-	account_info = algod_client.account_info(my_address)
-	print("Account balance: {} microAlgos".format(account_info.get('amount')) + "\n")
+    account_info = algod_client.account_info(my_address)
+    print("Account balance: {} microAlgos".format(account_info.get('amount')) + "\n")
 
     # build transaction
-	print("Building transaction")
+    print("Building transaction")
 	params = algod_client.suggested_params()
     # comment out the next two (2) lines to use suggested fees
-	params.flat_fee = True
-	params.fee = 1000
+    params.flat_fee = True
+    params.fee = 1000
 	receiver = "HZ57J3K46JIJXILONBBZOHX6BKPXEM2VVXNRFSUED6DKFD5ZD24PMJ3MVA"
 	note = "Hello World".encode()
 	amount = 1000000
