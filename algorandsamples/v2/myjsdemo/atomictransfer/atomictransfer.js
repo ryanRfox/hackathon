@@ -25,21 +25,7 @@ function recoverAccount2() {
     let myAccount = algosdk.mnemonicToSecretKey(passphrase);
     return myAccount;
 }
-// function used to wait for a tx confirmation
-const waitForConfirmation = async function (algodclient, txId) {
-    let status = (await algodclient.status().do());
-    let lastRound = status["last-round"];
-    while (true) {
-        const pendingInfo = await algodclient.pendingTransactionInformation(txId).do();
-        if (pendingInfo["confirmed-round"] !== null && pendingInfo["confirmed-round"] > 0) {
-            //Got the completed Transaction
-            console.log("Transaction " + txId + " confirmed in round " + pendingInfo["confirmed-round"]);
-            break;
-        }
-        lastRound++;
-        await algodclient.statusAfterBlock(lastRound).do();
-    }
-};
+
 async function submitAtomicTransfer() {
 
     try {
@@ -71,9 +57,9 @@ async function submitAtomicTransfer() {
         let params = await algodClient.getTransactionParams().do();
 
         // Transaction A to C 
-        let transaction1 = algosdk.makePaymentTxnWithSuggestedParams(myAccountA.addr, myAccountC, 1000000, undefined, undefined, params);
+        let transaction1 = algosdk.makePaymentTxnWithSuggestedParams(myAccountA.addr, myAccountC, 100000, undefined, undefined, params);
         // Create transaction B to A
-        let transaction2 = algosdk.makePaymentTxnWithSuggestedParams(myAccountB.addr, myAccountA.addr, 1000000, undefined, undefined, params);
+        let transaction2 = algosdk.makePaymentTxnWithSuggestedParams(myAccountB.addr, myAccountA.addr, 100000, undefined, undefined, params);
 
         // Store both transactions
         let txns = [transaction1, transaction2];
@@ -94,7 +80,7 @@ async function submitAtomicTransfer() {
         console.log("Transaction : " + tx.txId);
 
         // Wait for transaction to be confirmed
-        await waitForConfirmation(algodClient, tx.txId)
+        await algosdk.waitForConfirmation(algodClient, tx.txId, 4)
     } catch (err) {
         console.log("err", err);
     }
