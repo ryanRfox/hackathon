@@ -56,7 +56,7 @@ let algodclient = new algosdk.Algodv2(token, server, port);
     // Integer parameter
 
     let args = getUint8Int(12345);
-    let lsig = algosdk.makeLogicSig(program, args);
+    let lsig = new algosdk.LogicSigAccount(program, args);
     console.log("lsig : " + lsig.address());   
     
 
@@ -76,10 +76,12 @@ let algodclient = new algosdk.Algodv2(token, server, port);
     // fs.writeFileSync("simple.stxn", rawSignedTxn.blob);
     let tx = (await algodclient.sendRawTransaction(rawSignedTxn.blob).do());
     console.log("Transaction : " + tx.txId);   
-    await algosdk.waitForConfirmation(algodclient, tx.txId, 4);
+    const confirmedTxn = await algosdk.waitForConfirmation(algodclient, tx.txId, 4);
+    //Get the completed Transaction
+    console.log("Transaction " + tx.txId + " confirmed in round " + confirmedTxn["confirmed-round"]);
 
 })().catch(e => {
-    console.log(e.response.body.message);
+    console.log(e.message);
     console.log(e);
 });
 

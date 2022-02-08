@@ -75,7 +75,10 @@ let algodclient = new algosdk.Algodv2(token, server, port);
     // send raw LogicSigTransaction to network    
     let tx = (await algodclient.sendRawTransaction(rawSignedTxn.blob).do());
     console.log("Transaction : " + tx.txId);    
-    await algosdk.waitForConfirmation(algodclient, tx.txId, 4);
+    const confirmedTxn = await algosdk.waitForConfirmation(algodclient, tx.txId, 4);
+    //Get the completed Transaction
+    console.log("Transaction " + tx.txId + " confirmed in round " + confirmedTxn["confirmed-round"]);
+
 
 })().catch(e => {
     console.log(e.message);
