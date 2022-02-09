@@ -7,11 +7,11 @@ import com.algorand.algosdk.transaction.Transaction;
 import com.algorand.algosdk.util.Encoder;
 import com.algorand.algosdk.v2.client.common.AlgodClient;
 import com.algorand.algosdk.v2.client.common.Response;
-import com.algorand.algosdk.v2.client.model.NodeStatusResponse;
 import com.algorand.algosdk.v2.client.model.PendingTransactionResponse;
 import com.algorand.algosdk.v2.client.model.PostTransactionsResponse;
 import com.algorand.algosdk.v2.client.model.TransactionParametersResponse;
 import org.json.JSONObject;
+import com.algorand.algosdk.v2.client.Utils;
 
 
 class GettingStarted{
@@ -60,46 +60,7 @@ class GettingStarted{
             ALGOD_PORT, ALGOD_API_TOKEN);
         return client;
     }
-    /**
-      * utility function to wait on a transaction to be confirmed
-      * the timeout parameter indicates how many rounds do you wish to check pending transactions for
-      */
-    private PendingTransactionResponse waitForConfirmation(AlgodClient myclient, String txID, Integer timeout)
-    throws Exception {
-        if (myclient == null || txID == null || timeout < 0) {
-            throw new IllegalArgumentException("Bad arguments for waitForConfirmation.");
-        }
-        Response < NodeStatusResponse > resp = myclient.GetStatus().execute();
-        if (!resp.isSuccessful()) {
-            throw new Exception(resp.message());
-        }
-        NodeStatusResponse nodeStatusResponse = resp.body();
-        Long startRound = nodeStatusResponse.lastRound + 1;
-        Long currentRound = startRound;
-        while (currentRound < (startRound + timeout)) {
-            // Check the pending transactions                 
-            Response < PendingTransactionResponse > resp2 = myclient.PendingTransactionInformation(txID).execute();
-            if (resp2.isSuccessful()) {
-                PendingTransactionResponse pendingInfo = resp2.body();
-                if (pendingInfo != null) {
-                    if (pendingInfo.confirmedRound != null && pendingInfo.confirmedRound > 0) {
-                        // Got the completed Transaction
-                        return pendingInfo;
-                    }
-                    if (pendingInfo.poolError != null && pendingInfo.poolError.length() > 0) {
-                        // If there was a pool error, then the transaction has been rejected!
-                        throw new Exception("The transaction has been rejected with a pool error: " + pendingInfo.poolError);
-                    }
-                }
-            }
-            resp = myclient.WaitForBlock(currentRound).execute();
-            if (!resp.isSuccessful()) {
-                throw new Exception(resp.message());
-            }
-            currentRound++;
-        }
-        throw new Exception("Transaction not confirmed after " + timeout + " rounds!");
-    }
+
 
     private String printBalance(com.algorand.algosdk.account.Account myAccount) throws Exception {
         String myAddress = myAccount.getAddress().toString();
@@ -136,7 +97,7 @@ class GettingStarted{
             Transaction txn = Transaction.PaymentTransactionBuilder()
                 .sender(myAccount.getAddress().toString())
                 .note(note.getBytes())
-                .amount(1000000) // 1 algo = 1000000 microalgos
+                .amount(100000) // .1 algo = 100000 microalgos 
                 .receiver(new Address(RECEIVER))
                 .suggestedParams(params)
                 .closeRemainderTo(RECEIVER) 
@@ -151,14 +112,15 @@ class GettingStarted{
             String[] values = {"application/x-binary"};
             // Submit the transaction to the network
             byte[] encodedTxBytes = Encoder.encodeToMsgPack(signedTxn);
-            Response < PostTransactionsResponse > rawtxresponse = client.RawTransaction().rawtxn(encodedTxBytes).execute(headers, values);
+            Response < PostTransactionsResponse > rawtxresponse = 
+                client.RawTransaction().rawtxn(encodedTxBytes).execute(headers, values);
             if (!rawtxresponse.isSuccessful()) {
                 throw new Exception(rawtxresponse.message());
             }
             String id = rawtxresponse.body().txId;
 
             // Wait for transaction confirmation
-            PendingTransactionResponse pTrx = waitForConfirmation(client, id, 4);
+            PendingTransactionResponse pTrx = Utils.waitForConfirmation(client, id, 4);
 
             System.out.println("Transaction " + id + " confirmed in round " + pTrx.confirmedRound);
             // Read the transaction

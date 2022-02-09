@@ -34,6 +34,7 @@ import com.algorand.algosdk.v2.client.model.DryrunSource;
 import java.util.List;
 import com.algorand.algosdk.crypto.*;
 import org.json.JSONArray;
+import com.algorand.algosdk.v2.client.Utils;
 
 public class DryrunDebugging {
     // Utility function to update changing block parameters
@@ -45,10 +46,10 @@ public class DryrunDebugging {
         // Initialize an algod client
         // sandbox
         final String ALGOD_API_ADDR = "localhost";
-        // final Integer ALGOD_PORT = 4001;
-        // final String ALGOD_API_TOKEN = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
-        final Integer ALGOD_PORT = 54746;
-        final String ALGOD_API_TOKEN = "6b3a2ae3896f23be0a1f0cdd083b6d6d046fbeb594a3ce31f2963b717f74ad43";
+        final Integer ALGOD_PORT = 4001;
+        final String ALGOD_API_TOKEN = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+        // final Integer ALGOD_PORT = 54746;
+        // final String ALGOD_API_TOKEN = "6b3a2ae3896f23be0a1f0cdd083b6d6d046fbeb594a3ce31f2963b717f74ad43";
 
         // final String ALGOD_API_ADDR = "<algod-address>";
         // final Integer ALGOD_PORT = <algod-port>;
@@ -58,29 +59,6 @@ public class DryrunDebugging {
         return client;
     }
 
-    // utility function to wait on a transaction to be confirmed
-
-    public void waitForConfirmation(String txID) throws Exception {
-        if (client == null)
-            this.client = connectToNetwork();
-        Long lastRound = client.GetStatus().execute().body().lastRound;
-        while (true) {
-            try {
-                // Check the pending transactions
-                Response<PendingTransactionResponse> pendingInfo = client.PendingTransactionInformation(txID).execute();
-                if (pendingInfo.body().confirmedRound != null && pendingInfo.body().confirmedRound > 0) {
-                    // Got the completed Transaction
-                    System.out.println(
-                            "Transaction " + txID + " confirmed in round " + pendingInfo.body().confirmedRound);
-                    break;
-                }
-                lastRound++;
-                client.WaitForBlock(lastRound).execute();
-            } catch (Exception e) {
-                throw (e);
-            }
-        }
-    }
 
     public void dryrunDebuggingExample() throws Exception {
         // Initialize an algod client
@@ -107,8 +85,13 @@ public class DryrunDebugging {
         // byte[] source = Files.readAllBytes(Paths.get("<filename>"));
 
         // compile
-        CompileResponse response = client.TealCompile().source(source).execute().body();
-    
+        //CompileResponse response = client.TealCompile().source(source).execute().body();
+        Response < CompileResponse > compileresponse = client.TealCompile().source(source).execute();
+        if (!compileresponse.isSuccessful()) {
+            throw new Exception(compileresponse.message());
+        }
+        CompileResponse response = compileresponse.body();
+
         // print results
         System.out.println("response: " + response);
         System.out.println("Hash: " + response.hash);
@@ -133,7 +116,15 @@ public class DryrunDebugging {
 
         // sign the logic signature with an account sk
         src.signLogicsig(lsig);
-        TransactionParametersResponse params = client.TransactionParams().execute().body();
+        // get node suggested parameters
+        Response < TransactionParametersResponse > resp = client.TransactionParams().execute();
+        if (!resp.isSuccessful()) {
+            throw new Exception(resp.message());
+        }
+        TransactionParametersResponse params = resp.body();
+        if (params == null) {
+            throw new Exception("Params retrieval error");
+        }        
         // create a transaction
 
 
@@ -172,14 +163,14 @@ public class DryrunDebugging {
             // } catch (Exception e) {
             //     System.out.println("Exception: " + e);
             // }
-            String id = client.RawTransaction().rawtxn(encodedTxBytes).execute().body().txId;
-            // Wait for transaction confirmation
-            waitForConfirmation(id);
-
-            System.out.println("Successfully sent tx with id: " + id);
-            // Read the transaction
-            PendingTransactionResponse pTrx = client.PendingTransactionInformation(id).execute().body();
-  
+            Response < PostTransactionsResponse > rawtxresponse = client.RawTransaction().rawtxn(encodedTxBytes).execute();
+            if (!rawtxresponse.isSuccessful()) {
+                throw new Exception(rawtxresponse.message());
+            }
+            String id = rawtxresponse.body().txId;            // Wait for transaction confirmation
+            PendingTransactionResponse pTrx = Utils.waitForConfirmation(client,id,4);          
+            System.out.println("Transaction " + id + " confirmed in round " + pTrx.confirmedRound);
+    
             JSONObject jsonObj3 = new JSONObject(pTrx.toString());
             System.out.println("Transaction information (with notes): " + jsonObj3.toString(2)); // pretty print
             System.out.println("Decoded note: " + new String(pTrx.txn.tx.note));

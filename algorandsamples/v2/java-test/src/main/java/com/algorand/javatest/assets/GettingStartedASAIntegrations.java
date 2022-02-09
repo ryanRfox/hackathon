@@ -14,9 +14,10 @@ import com.algorand.algosdk.crypto.Address;
 import com.algorand.algosdk.transaction.SignedTransaction;
 import com.algorand.algosdk.transaction.Transaction;
 import com.algorand.algosdk.util.Encoder;
-import java.nio.file.Files;
-import java.nio.file.Paths;
+// import java.nio.file.Files;
+// import java.nio.file.Paths;
 import com.algorand.algosdk.util.CryptoProvider;
+import com.algorand.algosdk.v2.client.Utils;
 
 
 
@@ -107,9 +108,9 @@ public class GettingStartedASAIntegrations {
         Integer decimals = 0; 
         // read transaction from file
         // System.out.println("Working Directory = " + System.getProperty("user.dir"));
-        byte[] metadataFILE = Files.readAllBytes(Paths.get(System.getProperty("user.dir") + "/FT/metadata.json"));    
+        // byte[] metadataFILE = Files.readAllBytes(Paths.get(System.getProperty("user.dir") + "/FT/metadata.json"));    
         CryptoProvider.setupIfNeeded();
-        byte[] assetMetadataHash = digest(metadataFILE); 
+        // byte[] assetMetadataHash = digest(metadataFILE); 
         String assetMetadataHashstr = "16efaa3924a6fd9d3a4824799a4ac65d";
 
         // var metadataJSON = {
@@ -172,7 +173,9 @@ public class GettingStartedASAIntegrations {
             String id = rawtxresponse.body().txId;
 
             // Wait for transaction confirmation
-            PendingTransactionResponse pTrx = waitForConfirmation(client, id, 4);
+
+            PendingTransactionResponse pTrx = Utils.waitForConfirmation(client,id,4);          
+            System.out.println("Transaction " + id + " confirmed in round " + pTrx.confirmedRound);
 
             assetID = pTrx.assetIndex;
             System.out.println("AssetID = " + assetID);
@@ -234,8 +237,7 @@ public class GettingStartedASAIntegrations {
             String id = rawtxresponse.body().txId;
 
             // Wait for transaction confirmation
-            PendingTransactionResponse pTrx = waitForConfirmation(client, id, 4);
-
+            PendingTransactionResponse pTrx = Utils.waitForConfirmation(client,id,4);          
             System.out.println("Transaction " + id + " confirmed in round " + pTrx.confirmedRound);
             // Read the transaction
             // JSONObject jsonObj = new JSONObject(pTrx.toString());
@@ -268,8 +270,11 @@ public class GettingStartedASAIntegrations {
         // System.out.println("Algorand suggested parameters: " + params);
         // configuration changes must be done by
         // the manager account - changing manager of the asset
-        Transaction tx = Transaction.AssetAcceptTransactionBuilder().acceptingAccount(bob.getAddress())
-                .assetIndex(assetID).suggestedParams(params).build();
+        Transaction tx = Transaction.AssetAcceptTransactionBuilder()
+                .acceptingAccount(bob.getAddress())
+                .assetIndex(assetID)
+                .suggestedParams(params)
+                .build();
         // The transaction must be signed by the current manager account
         SignedTransaction signedTx = bob.signTransaction(tx);
         // send the transaction to the network and
@@ -286,11 +291,12 @@ public class GettingStartedASAIntegrations {
             }
             String id = rawtxresponse.body().txId;
             // Wait for transaction confirmation
-            PendingTransactionResponse pTrx = waitForConfirmation(client, id, 4);
+            PendingTransactionResponse pTrx = Utils.waitForConfirmation(client,id,4);          
+            System.out.println("Transaction " + id + " confirmed in round " + pTrx.confirmedRound);
+
 
             // We list the account information for acct1
             // and check that the asset is no longer exist
-            System.out.println("Transaction " + id + " confirmed in round " + pTrx.confirmedRound);
 
             // We can now list the account information for acct3
             // and see that it can accept the new asset
@@ -346,12 +352,12 @@ public class GettingStartedASAIntegrations {
             }
             String id = rawtxresponse.body().txId;
             // Wait for transaction confirmation
-            PendingTransactionResponse pTrx = waitForConfirmation(client, id, 4);
+            PendingTransactionResponse pTrx = Utils.waitForConfirmation(client,id,4);          
+            System.out.println("Transaction " + id + " confirmed in round " + pTrx.confirmedRound);
+
 
             // We list the account information for acct1
             // and check that the asset is no longer exist
-            System.out.println("Transaction " + id + " confirmed in round " + pTrx.confirmedRound);
-
             // We can now list the account information for acct3
             // and see that it can accept the new asset
             System.out.println("Alice Account = " + alice.getAddress().toString());
@@ -383,9 +389,14 @@ public class GettingStartedASAIntegrations {
         // System.out.println("Algorand suggested parameters: " + params);
         BigInteger assetAmount = BigInteger.valueOf(100000);
 
-        Transaction tx = Transaction.AssetTransferTransactionBuilder().sender(bob.getAddress())
-                .assetReceiver(alice.getAddress()).assetAmount(assetAmount).assetIndex(assetID)
-                .assetCloseTo(alice.getAddress()).suggestedParams(params).build();
+        Transaction tx = Transaction.AssetTransferTransactionBuilder()
+                .sender(bob.getAddress())
+                .assetReceiver(alice.getAddress())
+                .assetAmount(assetAmount)
+                .assetIndex(assetID)
+                .assetCloseTo(alice.getAddress())
+                .suggestedParams(params)
+                .build();
 
         // The transaction must be signed by the current manager account
         SignedTransaction signedTx = bob.signTransaction(tx);
@@ -403,10 +414,7 @@ public class GettingStartedASAIntegrations {
             }
             String id = rawtxresponse.body().txId;
             // Wait for transaction confirmation
-            PendingTransactionResponse pTrx = waitForConfirmation(client, id, 4);
-
-            // We list the account information for acct1
-            // and check that the asset is no longer exist
+            PendingTransactionResponse pTrx = Utils.waitForConfirmation(client,id,4);          
             System.out.println("Transaction " + id + " confirmed in round " + pTrx.confirmedRound);
 
             // We can now list the account information for acct3
@@ -449,8 +457,11 @@ public class GettingStartedASAIntegrations {
         // set destroy asset specific parameters
         // The manager must sign and submit the transaction
         // asset close to
-        Transaction tx = Transaction.AssetDestroyTransactionBuilder().sender(alice.getAddress()).assetIndex(myAssetID)
-                .suggestedParams(params).build();
+        Transaction tx = Transaction.AssetDestroyTransactionBuilder()
+                .sender(alice.getAddress())
+                .assetIndex(myAssetID)
+                .suggestedParams(params)
+                .build();
         // The transaction must be signed by the manager account
         SignedTransaction signedTxn = alice.signTransaction(tx);
         // send the transaction to the network
@@ -467,11 +478,11 @@ public class GettingStartedASAIntegrations {
             }
             String id = rawtxresponse.body().txId;
             // Wait for transaction confirmation
-            PendingTransactionResponse pTrx = waitForConfirmation(client, id, 4);
+            PendingTransactionResponse pTrx = Utils.waitForConfirmation(client,id,4);          
+            System.out.println("Transaction " + id + " confirmed in round " + pTrx.confirmedRound);
 
             // We list the account information for acct1
             // and check that the asset is no longer exist
-            System.out.println("Transaction " + id + " confirmed in round " + pTrx.confirmedRound);
             System.out.println("Account = " + alice.getAddress().toString());
             System.out.println("AssetID destroyed  = " + myAssetID.toString());
             // System.out.println("Closing Amount = " + pTrx.closingAmount.toString());
@@ -551,7 +562,7 @@ public class GettingStartedASAIntegrations {
             String id = rawtxresponse.body().txId;
 
             // Wait for transaction confirmation
-            PendingTransactionResponse pTrx = waitForConfirmation(client, id, 4);
+            PendingTransactionResponse pTrx = Utils.waitForConfirmation(client, id, 4);
 
             System.out.println("Transaction " + id + " confirmed in round " + pTrx.confirmedRound);
             // Read the transaction
@@ -630,48 +641,6 @@ public class GettingStartedASAIntegrations {
             }
     }
 
-    /**
-     * utility function to wait on a transaction to be confirmed the timeout
-     * parameter indicates how many rounds do you wish to check pending transactions
-     * for
-     */
-    private PendingTransactionResponse waitForConfirmation(AlgodClient myclient, String txID, Integer timeout)
-            throws Exception {
-        if (myclient == null || txID == null || timeout < 0) {
-            throw new IllegalArgumentException("Bad arguments for waitForConfirmation.");
-        }
-        Response<NodeStatusResponse> resp = myclient.GetStatus().execute();
-        if (!resp.isSuccessful()) {
-            throw new Exception(resp.message());
-        }
-        NodeStatusResponse nodeStatusResponse = resp.body();
-        Long startRound = nodeStatusResponse.lastRound + 1;
-        Long currentRound = startRound;
-        while (currentRound < (startRound + timeout)) {
-            // Check the pending transactions
-            Response<PendingTransactionResponse> resp2 = myclient.PendingTransactionInformation(txID).execute();
-            if (resp2.isSuccessful()) {
-                PendingTransactionResponse pendingInfo = resp2.body();
-                if (pendingInfo != null) {
-                    if (pendingInfo.confirmedRound != null && pendingInfo.confirmedRound > 0) {
-                        // Got the completed Transaction
-                        return pendingInfo;
-                    }
-                    if (pendingInfo.poolError != null && pendingInfo.poolError.length() > 0) {
-                        // If there was a pool error, then the transaction has been rejected!
-                        throw new Exception(
-                                "The transaction has been rejected with a pool error: " + pendingInfo.poolError);
-                    }
-                }
-            }
-            resp = myclient.WaitForBlock(currentRound).execute();
-            if (!resp.isSuccessful()) {
-                throw new Exception(resp.message());
-            }
-            currentRound++;
-        }
-        throw new Exception("Transaction not confirmed after " + timeout + " rounds!");
-    }
 
     // Print Balance for Account
     private void printBalance(Account myAccount) throws Exception {

@@ -1,7 +1,6 @@
 package com.algorand.javatest.atomictransfer;
 
 
-import com.algorand.algosdk.v2.client.model.NodeStatusResponse;
 import com.algorand.algosdk.v2.client.model.PostTransactionsResponse;
 import java.io.ByteArrayOutputStream;
 
@@ -16,6 +15,8 @@ import com.algorand.algosdk.transaction.Transaction;
 import com.algorand.algosdk.transaction.TxGroup;
 import com.algorand.algosdk.util.Encoder;
 import org.json.JSONObject;
+import com.algorand.algosdk.v2.client.Utils;
+
 
 public class AtomicTransfer {
 
@@ -34,47 +35,6 @@ public class AtomicTransfer {
     }
 
 
-    /**
-     * utility function to wait on a transaction to be confirmed
-     * the timeout parameter indicates how many rounds do you wish to check pending transactions for
-     */
-    public PendingTransactionResponse waitForConfirmation(AlgodClient myclient, String txID, Integer timeout)
-    throws Exception {
-        if (myclient == null || txID == null || timeout < 0) {
-            throw new IllegalArgumentException("Bad arguments for waitForConfirmation.");
-        }
-        Response < NodeStatusResponse > resp = myclient.GetStatus().execute();
-        if (!resp.isSuccessful()) {
-            throw new Exception(resp.message());
-        }
-        NodeStatusResponse nodeStatusResponse = resp.body();
-        Long startRound = nodeStatusResponse.lastRound + 1;
-        Long currentRound = startRound;
-        while (currentRound < (startRound + timeout)) {
-            // Check the pending transactions                 
-            Response < PendingTransactionResponse > resp2 = myclient.PendingTransactionInformation(txID).execute();
-            if (resp2.isSuccessful()) {
-                PendingTransactionResponse pendingInfo = resp2.body();
-                if (pendingInfo != null) {
-                    if (pendingInfo.confirmedRound != null && pendingInfo.confirmedRound > 0) {
-                        // Got the completed Transaction
-                        return pendingInfo;
-                    }
-                    if (pendingInfo.poolError != null && pendingInfo.poolError.length() > 0) {
-                        // If there was a pool error, then the transaction has been rejected!
-                        throw new Exception("The transaction has been rejected with a pool error: " + pendingInfo.poolError);
-                    }
-                }
-            }
-            resp = myclient.WaitForBlock(currentRound).execute();
-            if (!resp.isSuccessful()) {
-                throw new Exception(resp.message());
-            }
-            currentRound++;
-        }
-        throw new Exception("Transaction not confirmed after " + timeout + " rounds!");
-    }
-    
     public void AtomicTransfer() throws Exception {
 
         if (client == null)
@@ -98,12 +58,20 @@ public class AtomicTransfer {
         TransactionParametersResponse params = client.TransactionParams().execute().body();
 
         // Create the first transaction
-        Transaction tx1 = Transaction.PaymentTransactionBuilder().sender(acctA.getAddress()).amount(10000)
-                .receiver(acctC.getAddress()).suggestedParams(params).build();
+        Transaction tx1 = Transaction.PaymentTransactionBuilder()
+                .sender(acctA.getAddress())
+                .amount(10000)
+                .receiver(acctC.getAddress())
+                .suggestedParams(params)
+                .build();
 
         // Create the second transaction
-        Transaction tx2 = Transaction.PaymentTransactionBuilder().sender(acctB.getAddress()).amount(20000)
-                .receiver(acctA.getAddress()).suggestedParams(params).build();
+        Transaction tx2 = Transaction.PaymentTransactionBuilder()
+                .sender(acctB.getAddress())
+                .amount(20000)
+                .receiver(acctA.getAddress())
+                .suggestedParams(params)
+                .build();
         // group transactions an assign ids
         Digest gid = TxGroup.computeGroupID(new Transaction[] { tx1, tx2 });
         tx1.assignGroupID(gid);
@@ -132,7 +100,7 @@ public class AtomicTransfer {
             String id = response.body().txId;
             // wait for confirmation
                         // Wait for transaction confirmation
-            PendingTransactionResponse pTrx = waitForConfirmation(client, id, 4);
+            PendingTransactionResponse pTrx = Utils.waitForConfirmation(client, id, 4);
             System.out.println("Transaction " + id + " confirmed in round " + pTrx.confirmedRound);
             // Read the transaction
             JSONObject jsonObj = new JSONObject(pTrx.toString());

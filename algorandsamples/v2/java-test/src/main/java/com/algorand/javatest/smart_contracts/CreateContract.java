@@ -2,21 +2,15 @@ package com.algorand.javatest.smart_contracts;
 
 import com.algorand.algosdk.util.Encoder;
 
-import java.security.NoSuchAlgorithmException;
-import java.sql.Date;
-import java.text.SimpleDateFormat;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import com.algorand.algosdk.account.Account;
-import com.algorand.algosdk.builder.transaction.ApplicationBaseTransactionBuilder;
 import com.algorand.algosdk.crypto.Address;
 import com.algorand.algosdk.crypto.TEALProgram;
-import com.algorand.algosdk.logic.Logic;
 import com.algorand.algosdk.logic.StateSchema;
-import com.algorand.algosdk.v2.client.algod.AccountInformation;
-import com.algorand.algosdk.v2.client.algod.TealCompile;
 import com.algorand.algosdk.v2.client.common.AlgodClient;
 import com.algorand.algosdk.v2.client.common.Response;
 import com.algorand.algosdk.v2.client.model.Application;
@@ -27,8 +21,7 @@ import com.algorand.algosdk.v2.client.model.PostTransactionsResponse;
 import com.algorand.algosdk.transaction.SignedTransaction;
 import com.algorand.algosdk.transaction.Transaction;
 import com.algorand.algosdk.v2.client.model.TransactionParametersResponse;
-import com.algorand.algosdk.v2.client.model.TransactionsResponse;
-import com.fasterxml.jackson.core.JsonProcessingException;
+import com.algorand.algosdk.v2.client.Utils;
 
 public class CreateContract {
     public AlgodClient client = null;
@@ -45,28 +38,7 @@ public class CreateContract {
         return client;
     }
 
-    // utility function to wait on a transaction to be confirmed
-    public void waitForConfirmation(String txID) throws Exception {
-        if (client == null)
-            this.client = connectToNetwork();
-        Long lastRound = client.GetStatus().execute().body().lastRound;
-        while (true) {
-            try {
-                // Check the pending transactions
-                Response<PendingTransactionResponse> pendingInfo = client.PendingTransactionInformation(txID).execute();
-                if (pendingInfo.body().confirmedRound != null && pendingInfo.body().confirmedRound > 0) {
-                    // Got the completed Transaction
-                    System.out.println(
-                            "Transaction " + txID + " confirmed in round " + pendingInfo.body().confirmedRound);
-                    break;
-                }
-                lastRound++;
-                client.WaitForBlock(lastRound).execute();
-            } catch (Exception e) {
-                throw (e);
-            }
-        }
-    }
+ 
 
     // helper function to compile program source
     public String compileProgram(AlgodClient client, byte[] programSource) {
@@ -87,8 +59,14 @@ public class CreateContract {
         Address sender = creator.getAddress();
 
         // get node suggested parameters
-        TransactionParametersResponse params = client.TransactionParams().execute().body();
-
+        Response < TransactionParametersResponse > resp = client.TransactionParams().execute();
+        if (!resp.isSuccessful()) {
+            throw new Exception(resp.message());
+        }
+        TransactionParametersResponse params = resp.body();
+        if (params == null) {
+            throw new Exception("Params retrieval error");
+        }
         // create unsigned transaction
         Transaction txn = Transaction.ApplicationCreateTransactionBuilder()
                                 .sender(sender)
@@ -101,18 +79,21 @@ public class CreateContract {
 
         // sign transaction
         SignedTransaction signedTxn = creator.signTransaction(txn);
-        System.out.println("Signed transaction with txid: " + signedTxn.transactionID);
-
         // send to network
         byte[] encodedTxBytes = Encoder.encodeToMsgPack(signedTxn);
-        String id = client.RawTransaction().rawtxn(encodedTxBytes).execute().body().txId;
-        System.out.println("Successfully sent tx with ID: " + id);
+        Response < PostTransactionsResponse > rawtxresponse = client.RawTransaction().rawtxn(encodedTxBytes).execute();
+        if (!rawtxresponse.isSuccessful()) {
+            throw new Exception(rawtxresponse.message());
+        }
+        String id = rawtxresponse.body().txId;
+
+  
 
         // await confirmation
-        waitForConfirmation(id);
 
-        // display results
-        PendingTransactionResponse pTrx = client.PendingTransactionInformation(id).execute().body();
+        PendingTransactionResponse pTrx = Utils.waitForConfirmation(client,id,4);          
+        System.out.println("Transaction " + id + " confirmed in round " + pTrx.confirmedRound);
+
         Long appId = pTrx.applicationIndex;
         System.out.println("Created new app-id: " + appId);    
     
@@ -125,8 +106,14 @@ public class CreateContract {
         System.out.println("OptIn from account: " + sender);
     
         // get node suggested parameters
-        TransactionParametersResponse params = client.TransactionParams().execute().body();
-    
+        Response < TransactionParametersResponse > resp = client.TransactionParams().execute();
+        if (!resp.isSuccessful()) {
+            throw new Exception(resp.message());
+        }
+        TransactionParametersResponse params = resp.body();
+        if (params == null) {
+            throw new Exception("Params retrieval error");
+        }    
         // create unsigned transaction
         Transaction txn = Transaction.ApplicationOptInTransactionBuilder()
                                 .sender(sender)
@@ -139,13 +126,17 @@ public class CreateContract {
 
         // send to network
         byte[] encodedTxBytes = Encoder.encodeToMsgPack(signedTxn);
-        String id = client.RawTransaction().rawtxn(encodedTxBytes).execute().body().txId;
+        Response < PostTransactionsResponse > rawtxresponse = client.RawTransaction().rawtxn(encodedTxBytes).execute();
+        if (!rawtxresponse.isSuccessful()) {
+            throw new Exception(rawtxresponse.message());
+        }
+        String id = rawtxresponse.body().txId;
+  
 
         // await confirmation
-        waitForConfirmation(id);
-    
-        // display results
-        PendingTransactionResponse pTrx = client.PendingTransactionInformation(id).execute().body();
+        PendingTransactionResponse pTrx = Utils.waitForConfirmation(client,id,4);          
+        System.out.println("Transaction " + id + " confirmed in round " + pTrx.confirmedRound);
+
         System.out.println("OptIn to app-id: " + pTrx.txn.tx.applicationId);            
     }
 
@@ -154,8 +145,14 @@ public class CreateContract {
         Address sender = account.getAddress();
         System.out.println("Call from account: " + sender);
 
-        TransactionParametersResponse params = client.TransactionParams().execute().body();
-    
+        Response < TransactionParametersResponse > resp = client.TransactionParams().execute();
+        if (!resp.isSuccessful()) {
+            throw new Exception(resp.message());
+        }
+        TransactionParametersResponse params = resp.body();
+        if (params == null) {
+            throw new Exception("Params retrieval error");
+        }    
         // create unsigned transaction
         Transaction txn = Transaction.ApplicationCallTransactionBuilder()
                                 .sender(sender)
@@ -172,13 +169,17 @@ public class CreateContract {
 
         // send to network
         byte[] encodedTxBytes = Encoder.encodeToMsgPack(signedTxn);
-        String id = client.RawTransaction().rawtxn(encodedTxBytes).execute().body().txId;
+        Response < PostTransactionsResponse > rawtxresponse = client.RawTransaction().rawtxn(encodedTxBytes).execute();
+        if (!rawtxresponse.isSuccessful()) {
+            throw new Exception(rawtxresponse.message());
+        }
+        String id = rawtxresponse.body().txId;
 
         // await confirmation
-        waitForConfirmation(id);
+        PendingTransactionResponse pTrx = Utils.waitForConfirmation(client,id,4);          
+        System.out.println("Transaction " + id + " confirmed in round " + pTrx.confirmedRound);
 
-        // display results
-        PendingTransactionResponse pTrx = client.PendingTransactionInformation(id).execute().body();
+
         System.out.println("Called app-id: " + pTrx.txn.tx.applicationId);
         if (pTrx.globalStateDelta != null) {
             System.out.println("    Global state: " + pTrx.globalStateDelta.toString());
@@ -213,8 +214,14 @@ public class CreateContract {
         Address sender = creator.getAddress();
 
         // get node suggested parameters
-        TransactionParametersResponse params = client.TransactionParams().execute().body();
-
+        Response < TransactionParametersResponse > resp = client.TransactionParams().execute();
+        if (!resp.isSuccessful()) {
+            throw new Exception(resp.message());
+        }
+        TransactionParametersResponse params = resp.body();
+        if (params == null) {
+            throw new Exception("Params retrieval error");
+        }
         // create unsigned transaction
         Transaction txn = Transaction.ApplicationUpdateTransactionBuilder()
                                 .sender(sender)
@@ -229,13 +236,16 @@ public class CreateContract {
 
         // send to network
         byte[] encodedTxBytes = Encoder.encodeToMsgPack(signedTxn);
-        String id = client.RawTransaction().rawtxn(encodedTxBytes).execute().body().txId;
-
+        Response < PostTransactionsResponse > rawtxresponse = client.RawTransaction().rawtxn(encodedTxBytes).execute();
+        if (!rawtxresponse.isSuccessful()) {
+            throw new Exception(rawtxresponse.message());
+        }
+        String id = rawtxresponse.body().txId;
+        
         // await confirmation
-        waitForConfirmation(id);
+        PendingTransactionResponse pTrx = Utils.waitForConfirmation(client,id,4);          
+        System.out.println("Transaction " + id + " confirmed in round " + pTrx.confirmedRound);
 
-        // display results
-        PendingTransactionResponse pTrx = client.PendingTransactionInformation(id).execute().body();
         System.out.println("Updated new app-id: " + appId);    
     }
 
@@ -244,8 +254,14 @@ public class CreateContract {
         Address sender = userAccount.getAddress();
 
         // get node suggested parameters
-        TransactionParametersResponse params = client.TransactionParams().execute().body();
-
+        Response < TransactionParametersResponse > resp = client.TransactionParams().execute();
+        if (!resp.isSuccessful()) {
+            throw new Exception(resp.message());
+        }
+        TransactionParametersResponse params = resp.body();
+        if (params == null) {
+            throw new Exception("Params retrieval error");
+        }
         // create unsigned transaction
         Transaction txn = Transaction.ApplicationCloseTransactionBuilder()
                                 .sender(sender)
@@ -258,13 +274,17 @@ public class CreateContract {
 
         // send to network
         byte[] encodedTxBytes = Encoder.encodeToMsgPack(signedTxn);
-        String id = client.RawTransaction().rawtxn(encodedTxBytes).execute().body().txId;
 
+        Response < PostTransactionsResponse > rawtxresponse = client.RawTransaction().rawtxn(encodedTxBytes).execute();
+        if (!rawtxresponse.isSuccessful()) {
+            throw new Exception(rawtxresponse.message());
+        }
+        String id = rawtxresponse.body().txId;
         // await confirmation
-        waitForConfirmation(id);
+        PendingTransactionResponse pTrx = Utils.waitForConfirmation(client,id,4);          
+        System.out.println("Transaction " + id + " confirmed in round " + pTrx.confirmedRound);
 
-        // display results
-        PendingTransactionResponse pTrx = client.PendingTransactionInformation(id).execute().body();
+
         System.out.println("Closed out from app-id: " + appId);    
     }
 
@@ -273,8 +293,14 @@ public class CreateContract {
         Address sender = userAccount.getAddress();
 
         // get node suggested parameters
-        TransactionParametersResponse params = client.TransactionParams().execute().body();
-
+        Response < TransactionParametersResponse > resp = client.TransactionParams().execute();
+        if (!resp.isSuccessful()) {
+            throw new Exception(resp.message());
+        }
+        TransactionParametersResponse params = resp.body();
+        if (params == null) {
+            throw new Exception("Params retrieval error");
+        }
         // create unsigned transaction
         Transaction txn = Transaction.ApplicationClearTransactionBuilder()
                                 .sender(sender)
@@ -287,13 +313,15 @@ public class CreateContract {
 
         // send to network
         byte[] encodedTxBytes = Encoder.encodeToMsgPack(signedTxn);
-        String id = client.RawTransaction().rawtxn(encodedTxBytes).execute().body().txId;
 
+        Response < PostTransactionsResponse > rawtxresponse = client.RawTransaction().rawtxn(encodedTxBytes).execute();
+        if (!rawtxresponse.isSuccessful()) {
+            throw new Exception(rawtxresponse.message());
+        }
+        String id = rawtxresponse.body().txId;
         // await confirmation
-        waitForConfirmation(id);
-
-        // display results
-        PendingTransactionResponse pTrx = client.PendingTransactionInformation(id).execute().body();
+        PendingTransactionResponse pTrx = Utils.waitForConfirmation(client,id,4);          
+        System.out.println("Transaction " + id + " confirmed in round " + pTrx.confirmedRound);
         System.out.println("Cleared local state for app-id: " + appId);    
     }
 
@@ -302,8 +330,14 @@ public class CreateContract {
         Address sender = creatorAccount.getAddress();
 
         // get node suggested parameters
-        TransactionParametersResponse params = client.TransactionParams().execute().body();
-
+        Response < TransactionParametersResponse > resp = client.TransactionParams().execute();
+        if (!resp.isSuccessful()) {
+            throw new Exception(resp.message());
+        }
+        TransactionParametersResponse params = resp.body();
+        if (params == null) {
+            throw new Exception("Params retrieval error");
+        }
         // create unsigned transaction
         Transaction txn = Transaction.ApplicationDeleteTransactionBuilder()
                                 .sender(sender)
@@ -316,13 +350,16 @@ public class CreateContract {
 
         // send to network
         byte[] encodedTxBytes = Encoder.encodeToMsgPack(signedTxn);
-        String id = client.RawTransaction().rawtxn(encodedTxBytes).execute().body().txId;
+        Response < PostTransactionsResponse > rawtxresponse = client.RawTransaction().rawtxn(encodedTxBytes).execute();
+        if (!rawtxresponse.isSuccessful()) {
+            throw new Exception(rawtxresponse.message());
+        }
+        String id = rawtxresponse.body().txId;
+       
 
         // await confirmation
-        waitForConfirmation(id);
-
-        // display results
-        PendingTransactionResponse pTrx = client.PendingTransactionInformation(id).execute().body();
+        PendingTransactionResponse pTrx = Utils.waitForConfirmation(client,id,4);          
+        System.out.println("Transaction " + id + " confirmed in round " + pTrx.confirmedRound);
         System.out.println("Deleted app-id: " + appId);    
     }
 
@@ -381,6 +418,9 @@ public class CreateContract {
             // get accounts from mnemonic
             Account creatorAccount = new Account(creatorMnemonic);
             Account userAccount = new Account(userMnemonic);
+            System.out.println("Creator: " + creatorAccount.getAddress());
+            System.out.println("User: " + userAccount.getAddress());
+
         
             // compile programs
             String approvalProgram = compileProgram(client, approvalProgramSourceInitial.getBytes("UTF-8"));
@@ -395,15 +435,17 @@ public class CreateContract {
                 throw new Exception(resp.message());
             }
             TransactionParametersResponse params = resp.body();
+            if (params == null) {
+                throw new Exception("Params retrieval error");
+            }
             Transaction txn = Transaction.PaymentTransactionBuilder()
             .sender(creatorAccount.getAddress())
-            .amount(10000000) // 1 algo = 1000000 microalgos
+            .amount(1000000) // 1 algo = 1000000 microalgos
             .receiver(es)
             .suggestedParams(params)
             .build();
 
             SignedTransaction signedTxn = creatorAccount.signTransaction(txn);
-            System.out.println("Signed transaction with txid: " + signedTxn.transactionID);
             byte[] encodedTxBytes = Encoder.encodeToMsgPack(signedTxn);
             Response < PostTransactionsResponse > rawtxresponse = client.RawTransaction().rawtxn(encodedTxBytes).execute();
             if (!rawtxresponse.isSuccessful()) {
@@ -411,8 +453,8 @@ public class CreateContract {
             }
             String id = rawtxresponse.body().txId;
             // Wait for transaction confirmation
-            waitForConfirmation(id);
-            System.out.println("Transaction " + id + " confirmed" );
+            PendingTransactionResponse pTrx = Utils.waitForConfirmation(client,id,4);          
+            System.out.println("Transaction " + id + " confirmed in round " + pTrx.confirmedRound);
             String pm = new String("payme");
             appArgs.add(pm.getBytes()); 
             // call application without arguments

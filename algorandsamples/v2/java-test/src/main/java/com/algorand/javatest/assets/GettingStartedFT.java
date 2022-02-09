@@ -3,8 +3,8 @@ package com.algorand.javatest.assets;
 import com.algorand.algosdk.account.Account;
 
 import java.math.BigInteger;
-import java.nio.file.Files;
-import java.nio.file.Paths;
+//import java.nio.file.Files;
+//import java.nio.file.Paths;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.Scanner;
@@ -18,6 +18,7 @@ import com.algorand.algosdk.transaction.SignedTransaction;
 import com.algorand.algosdk.transaction.Transaction;
 import com.algorand.algosdk.util.CryptoProvider;
 import com.algorand.algosdk.util.Encoder;
+import com.algorand.algosdk.v2.client.Utils;
 // see ASA param conventions here: https://github.com/algorandfoundation/ARCs/blob/main/ARCs/arc-0003.md
 
 public class GettingStartedFT {
@@ -136,11 +137,11 @@ public class GettingStartedFT {
         // integer number of decimals for asset unit calculation
         Integer decimals = 0;
         // System.out.println("Working Directory = " + System.getProperty("user.dir"));
-        byte[] metadataFILE = Files.readAllBytes(Paths.get(System.getProperty("user.dir") + "/FT/metadata.json"));    
+        // byte[] metadataFILE = Files.readAllBytes(Paths.get(System.getProperty("user.dir") + "/FT/metadata.json"));    
         // use this to verify that the metadatahash displayed in the asset creation response is correct
         // cat metadata.json | openssl dgst -sha256 -binary | openssl base64 -A
 
-        byte[] assetMetadataHash = digest(metadataFILE); 
+        // byte[] assetMetadataHash = digest(metadataFILE); 
         String assetMetadataHashstr = "16efaa3924a6fd9d3a4824799a4ac65d";
         Transaction tx = Transaction.AssetCreateTransactionBuilder()
                 .sender(alice.getAddress().toString())
@@ -175,7 +176,8 @@ public class GettingStartedFT {
             String id = rawtxresponse.body().txId;
 
             // Wait for transaction confirmation
-            PendingTransactionResponse pTrx = waitForConfirmation(client, id, 4);
+            PendingTransactionResponse pTrx = Utils.waitForConfirmation(client, id, 4);
+            System.out.println("Transaction " + id + " confirmed in round " + pTrx.confirmedRound);
 
             assetID = pTrx.assetIndex;
             System.out.println("AssetID = " + assetID);
@@ -233,7 +235,7 @@ public class GettingStartedFT {
             }
             String id = rawtxresponse.body().txId;
             // Wait for transaction confirmation
-            PendingTransactionResponse pTrx = waitForConfirmation(client, id, 4);
+            PendingTransactionResponse pTrx = Utils.waitForConfirmation(client, id, 4);
 
             // We list the account information for acct1
             // and check that the asset is no longer exist
@@ -303,7 +305,7 @@ public class GettingStartedFT {
             String id = rawtxresponse.body().txId;
 
             // Wait for transaction confirmation
-            PendingTransactionResponse pTrx = waitForConfirmation(client, id, 4);
+            PendingTransactionResponse pTrx = Utils.waitForConfirmation(client, id, 4);
 
             System.out.println("Transaction " + id + " confirmed in round " + pTrx.confirmedRound);
             // Read the transaction
@@ -380,48 +382,7 @@ public class GettingStartedFT {
             }
     }
 
-    /**
-     * utility function to wait on a transaction to be confirmed the timeout
-     * parameter indicates how many rounds do you wish to check pending transactions
-     * for
-     */
-    private PendingTransactionResponse waitForConfirmation(AlgodClient myclient, String txID, Integer timeout)
-            throws Exception {
-        if (myclient == null || txID == null || timeout < 0) {
-            throw new IllegalArgumentException("Bad arguments for waitForConfirmation.");
-        }
-        Response<NodeStatusResponse> resp = myclient.GetStatus().execute();
-        if (!resp.isSuccessful()) {
-            throw new Exception(resp.message());
-        }
-        NodeStatusResponse nodeStatusResponse = resp.body();
-        Long startRound = nodeStatusResponse.lastRound + 1;
-        Long currentRound = startRound;
-        while (currentRound < (startRound + timeout)) {
-            // Check the pending transactions
-            Response<PendingTransactionResponse> resp2 = myclient.PendingTransactionInformation(txID).execute();
-            if (resp2.isSuccessful()) {
-                PendingTransactionResponse pendingInfo = resp2.body();
-                if (pendingInfo != null) {
-                    if (pendingInfo.confirmedRound != null && pendingInfo.confirmedRound > 0) {
-                        // Got the completed Transaction
-                        return pendingInfo;
-                    }
-                    if (pendingInfo.poolError != null && pendingInfo.poolError.length() > 0) {
-                        // If there was a pool error, then the transaction has been rejected!
-                        throw new Exception(
-                                "The transaction has been rejected with a pool error: " + pendingInfo.poolError);
-                    }
-                }
-            }
-            resp = myclient.WaitForBlock(currentRound).execute();
-            if (!resp.isSuccessful()) {
-                throw new Exception(resp.message());
-            }
-            currentRound++;
-        }
-        throw new Exception("Transaction not confirmed after " + timeout + " rounds!");
-    }
+   
     private String printBalance(com.algorand.algosdk.account.Account myAccount) throws Exception {
         String myAddress = myAccount.getAddress().toString();
         Response < com.algorand.algosdk.v2.client.model.Account > respAcct = client.AccountInformation(myAccount.getAddress()).execute();

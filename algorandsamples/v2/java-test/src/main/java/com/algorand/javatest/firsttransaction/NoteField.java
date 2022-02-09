@@ -6,10 +6,10 @@ import com.algorand.algosdk.transaction.Transaction;
 import com.algorand.algosdk.util.Encoder;
 import com.algorand.algosdk.v2.client.common.AlgodClient;
 import com.algorand.algosdk.v2.client.common.Response;
-import com.algorand.algosdk.v2.client.model.NodeStatusResponse;
 import com.algorand.algosdk.v2.client.model.PendingTransactionResponse;
 import com.algorand.algosdk.v2.client.model.PostTransactionsResponse;
 import org.json.JSONObject;
+import com.algorand.algosdk.v2.client.Utils;
 
 
 public class NoteField {
@@ -26,47 +26,7 @@ public class NoteField {
         return client;
     }
 
-    /**
-     * utility function to wait on a transaction to be confirmed
-     * the timeout parameter indicates how many rounds do you wish to check pending transactions for
-     */
-    public PendingTransactionResponse waitForConfirmation(AlgodClient myclient, String txID, Integer timeout)
-            throws Exception {
-        if (myclient == null || txID == null || timeout < 0) {
-            throw new IllegalArgumentException("Bad arguments for waitForConfirmation.");
-        }
-        Response<NodeStatusResponse> resp = myclient.GetStatus().execute();
-        if (!resp.isSuccessful()) {
-            throw new Exception(resp.message());
-        }
-        NodeStatusResponse nodeStatusResponse = resp.body();
-        Long startRound = nodeStatusResponse.lastRound+1;
-        Long currentRound = startRound;
-        while (currentRound < (startRound + timeout)) { 
-                // Check the pending transactions                 
-                Response<PendingTransactionResponse> resp2 = myclient.PendingTransactionInformation(txID).execute();
-                if (resp2.isSuccessful()) {
-                    PendingTransactionResponse pendingInfo = resp2.body();               
-                    if (pendingInfo != null) {
-                        if (pendingInfo.confirmedRound != null && pendingInfo.confirmedRound > 0) {
-                            // Got the completed Transaction
-                            return pendingInfo;                     
-                        }
-                        if (pendingInfo.poolError != null && pendingInfo.poolError.length() > 0) {
-                            // If there was a pool error, then the transaction has been rejected!
-                            throw new Exception("The transaction has been rejected with a pool error: " + pendingInfo.poolError);
-                        }
-                    }
-                }
-        
-                Response<NodeStatusResponse> resp3 = myclient.WaitForBlock(currentRound).execute();
-                if (!resp3.isSuccessful()) {
-                    throw new Exception(resp3.message());
-                }   
-                currentRound++;                  
-        }
-        throw new Exception("Transaction not confirmed after " + timeout + " rounds!");
-    }
+
 
     /**
      * note field example.
@@ -111,7 +71,7 @@ public class NoteField {
         String id = resp.body().txId;
 
         // Wait for transaction confirmation
-        PendingTransactionResponse pTrx = waitForConfirmation(client, id, 4);
+        PendingTransactionResponse pTrx = Utils.waitForConfirmation(client, id, 4);
 
         System.out.println("Transaction " + id + " confirmed in round " + pTrx.confirmedRound);
         // Read the transaction

@@ -1,4 +1,4 @@
-package com.algorand.javatest;
+package com.algorand.javatest.misc;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;

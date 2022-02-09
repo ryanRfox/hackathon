@@ -1,6 +1,8 @@
 package com.algorand.javatest.smart_contracts;
 
 import com.algorand.algosdk.v2.client.common.AlgodClient;
+import com.algorand.algosdk.v2.client.common.Response;
+
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import com.algorand.algosdk.v2.client.model.CompileResponse;
@@ -34,7 +36,11 @@ public class CompileTeal {
         // byte[] data = Files.readAllBytes(Paths.get("<./filename>"));
  
         // compile
-        CompileResponse response = client.TealCompile().source(data).execute().body();
+        Response < CompileResponse > compileresponse = client.TealCompile().source(data).execute();
+        if (!compileresponse.isSuccessful()) {
+            throw new Exception(compileresponse.message());
+        }
+        CompileResponse response = compileresponse.body();
         // print results
         System.out.println("response: " + response);
         System.out.println("Hash: " + response.hash); 

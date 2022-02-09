@@ -7,12 +7,13 @@ import com.algorand.algosdk.transaction.Transaction;
 import com.algorand.algosdk.util.Encoder;
 import com.algorand.algosdk.v2.client.common.AlgodClient;
 import com.algorand.algosdk.v2.client.common.Response;
-import com.algorand.algosdk.v2.client.model.NodeStatusResponse;
+import com.algorand.algosdk.v2.client.Utils;
+//import com.algorand.algosdk.v2.client.model.NodeStatusResponse;
 import com.algorand.algosdk.v2.client.model.PendingTransactionResponse;
 import com.algorand.algosdk.v2.client.model.PostTransactionsResponse;
 import com.algorand.algosdk.v2.client.model.TransactionParametersResponse;
 import org.json.JSONObject;
-import org.apache.commons.lang3.ArrayUtils;
+
 
 public class YourFirstTransaction {
     public AlgodClient client = null;
@@ -24,12 +25,12 @@ public class YourFirstTransaction {
         // Initialize an algod client
         // AlgodClient client = (AlgodClient) new AlgodClient(ALGOD_API_ADDR, ALGOD_PORT, ALGOD_API_TOKEN);
         // hackathon - demos instance
-        // final String ALGOD_API_ADDR = "http://hackathon.algodev.network";
-        // final Integer ALGOD_PORT = 9100;
-        // final String ALGOD_API_TOKEN = "ef920e2e7e002953f4b29a8af720efe8e4ecc75ff102b165e0472834b25832c1";
-        final String ALGOD_API_ADDR = "localhost";
-        final Integer ALGOD_PORT = 4001;
-        final String ALGOD_API_TOKEN = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+        final String ALGOD_API_ADDR = "http://hackathon.algodev.network";
+        final Integer ALGOD_PORT = 9100;
+        final String ALGOD_API_TOKEN = "ef920e2e7e002953f4b29a8af720efe8e4ecc75ff102b165e0472834b25832c1";
+        // final String ALGOD_API_ADDR = "localhost";
+        // final Integer ALGOD_PORT = 4001;
+        // final String ALGOD_API_TOKEN = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
         // final String ALGOD_API_ADDR = "https://testnet.algoexplorerapi.io/";
         // final Integer ALGOD_PORT = 443;
         // final String ALGOD_API_TOKEN = "";
@@ -40,46 +41,7 @@ public class YourFirstTransaction {
             ALGOD_PORT, ALGOD_API_TOKEN);
         return client;
     }
-    /**
-     * utility function to wait on a transaction to be confirmed
-     * the timeout parameter indicates how many rounds do you wish to check pending transactions for
-     */
-    public PendingTransactionResponse waitForConfirmation(AlgodClient myclient, String txID, Integer timeout)
-    throws Exception {
-        if (myclient == null || txID == null || timeout < 0) {
-            throw new IllegalArgumentException("Bad arguments for waitForConfirmation.");
-        }
-        Response < NodeStatusResponse > resp = myclient.GetStatus().execute();
-        if (!resp.isSuccessful()) {
-            throw new Exception(resp.message());
-        }
-        NodeStatusResponse nodeStatusResponse = resp.body();
-        Long startRound = nodeStatusResponse.lastRound + 1;
-        Long currentRound = startRound;
-        while (currentRound < (startRound + timeout)) {
-            // Check the pending transactions                 
-            Response < PendingTransactionResponse > resp2 = myclient.PendingTransactionInformation(txID).execute();
-            if (resp2.isSuccessful()) {
-                PendingTransactionResponse pendingInfo = resp2.body();
-                if (pendingInfo != null) {
-                    if (pendingInfo.confirmedRound != null && pendingInfo.confirmedRound > 0) {
-                        // Got the completed Transaction
-                        return pendingInfo;
-                    }
-                    if (pendingInfo.poolError != null && pendingInfo.poolError.length() > 0) {
-                        // If there was a pool error, then the transaction has been rejected!
-                        throw new Exception("The transaction has been rejected with a pool error: " + pendingInfo.poolError);
-                    }
-                }
-            }
-            resp = myclient.WaitForBlock(currentRound).execute();
-            if (!resp.isSuccessful()) {
-                throw new Exception(resp.message());
-            }
-            currentRound++;
-        }
-        throw new Exception("Transaction not confirmed after " + timeout + " rounds!");
-    }
+
 
 
     public void gettingStartedExample() throws Exception {
@@ -110,7 +72,7 @@ public class YourFirstTransaction {
             Transaction txn = Transaction.PaymentTransactionBuilder()
                 .sender(myAddress)
                 .note(note.getBytes())
-                .amount(1000000)
+                .amount(100000)
                 .receiver(new Address(RECEIVER))
                 .suggestedParams(params)
                 .build();
@@ -129,13 +91,18 @@ public class YourFirstTransaction {
             String id = rawtxresponse.body().txId;
 
             // Wait for transaction confirmation
-            PendingTransactionResponse pTrx = waitForConfirmation(client, id, 4);
-
+            PendingTransactionResponse pTrx = Utils.waitForConfirmation(client, id, 4);
+     
             System.out.println("Transaction " + id + " confirmed in round " + pTrx.confirmedRound);
             // Read the transaction
             JSONObject jsonObj = new JSONObject(pTrx.toString());
             System.out.println("Transaction information (with notes): " + jsonObj.toString(2));
             System.out.println("Decoded note: " + new String(pTrx.txn.tx.note));
+            System.out.println("Amount: " + new String(pTrx.txn.tx.amount.toString()));
+            System.out.println("Fee: " + new String(pTrx.txn.tx.fee.toString()));
+            if (pTrx.closingAmount != null){
+                System.out.println("Closing Amount: " + new String(pTrx.closingAmount.toString()));
+            }
             printBalance(myAccount);
         } catch (Exception e) {
             System.err.println("Exception when calling algod#transactionInformation: " + e.getMessage());

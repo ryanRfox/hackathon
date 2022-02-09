@@ -1,4 +1,4 @@
-package com.algorand.javatest;
+package com.algorand.javatest.misc;
 
 import com.algorand.algosdk.kmd.client.ApiException;
 import com.algorand.algosdk.kmd.client.KmdClient;
